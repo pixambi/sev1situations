@@ -13,6 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/pixambi/sev1situations/internal/primitive"
+	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/scenario"
 )
 
@@ -24,14 +25,26 @@ type Options struct {
 	// UserDir is the user's scenario directory. Empty means the default
 	// (UserScenarioDir).
 	UserDir string
+	// Products are the registered products. Their names are the products a
+	// scenario may use, and their primitives are available to it (R-SCOPE-3).
+	// If nil, a temporary built-in list of names is used.
+	Products *product.Registry
 }
 
 // builtinRoot is the folder inside Options.Builtin that holds the scenarios.
 const builtinRoot = "scenarios"
 
-// knownProducts lists the product names a scenario may use. It is a temporary
-// list until the product registry exists (T-050).
-func knownProducts() []string { return []string{"vault", "boundary"} }
+// fallbackProducts is used when no product registry is given, so the commands
+// still work in tests that have none. The real program always passes one.
+func fallbackProducts() []string { return []string{"vault", "boundary"} }
+
+// productNames returns the product names a scenario may use.
+func productNames(opts Options) []string {
+	if opts.Products != nil {
+		return opts.Products.Names()
+	}
+	return fallbackProducts()
+}
 
 const scenarioUsage = `Usage: s1s scenario <command>
 
@@ -42,14 +55,19 @@ Commands:
                                (--dir <parent> chooses where, default the current directory)
 `
 
-// scenarioRegistry builds a registry with the generic primitives, so
-// validation can check names and arguments.
-func scenarioRegistry() (*scenario.Registry, error) {
+// scenarioRegistry builds a registry with the generic primitives and every
+// product's primitives, so validation can check names and arguments.
+func scenarioRegistry(opts Options) (*scenario.Registry, error) {
 	prims := primitive.NewRegistry()
 	if err := primitive.RegisterGeneric(prims); err != nil {
 		return nil, fmt.Errorf("register primitives: %w", err)
 	}
-	return scenario.NewRegistry(scenario.Options{Primitives: prims, Products: knownProducts()}), nil
+	if opts.Products != nil {
+		if err := opts.Products.RegisterPrimitives(prims); err != nil {
+			return nil, fmt.Errorf("register product primitives: %w", err)
+		}
+	}
+	return scenario.NewRegistry(scenario.Options{Primitives: prims, Products: productNames(opts)}), nil
 }
 
 // scenarioCommand runs `s1s scenario ...`.
@@ -64,7 +82,7 @@ func scenarioCommand(args []string, stdout, stderr io.Writer, opts Options) int 
 	case "validate":
 		return scenarioValidate(args[1:], stdout, stderr, opts)
 	case "new":
-		return scenarioNew(args[1:], stdout, stderr)
+		return scenarioNew(args[1:], stdout, stderr, opts)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, scenarioUsage)
 		return exitOK
@@ -83,7 +101,7 @@ func loadCatalogue(opts Options) (*scenario.Registry, error) {
 
 // loadCatalogueAt is loadCatalogue that also returns the user directory it used.
 func loadCatalogueAt(opts Options) (*scenario.Registry, string, error) {
-	reg, err := scenarioRegistry()
+	reg, err := scenarioRegistry(opts)
 	if err != nil {
 		return nil, "", err
 	}
@@ -156,7 +174,7 @@ func scenarioValidate(args []string, stdout, stderr io.Writer, opts Options) int
 	// where turns a scenario's folder into a path the reader can find.
 	var where func(scenario.Entry) string
 	if len(args) == 1 {
-		reg, err = validatePath(args[0])
+		reg, err = validatePath(args[0], opts)
 		where = func(e scenario.Entry) string { return filepath.Join(args[0], e.Scenario.Dir) }
 	} else {
 		var userDir string
@@ -184,8 +202,8 @@ func scenarioValidate(args []string, stdout, stderr io.Writer, opts Options) int
 }
 
 // validatePath loads every scenario under a directory on disk.
-func validatePath(path string) (*scenario.Registry, error) {
-	reg, err := scenarioRegistry()
+func validatePath(path string, opts Options) (*scenario.Registry, error) {
+	reg, err := scenarioRegistry(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -198,14 +216,14 @@ func validatePath(path string) (*scenario.Registry, error) {
 
 var kebab = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
-func scenarioNew(args []string, stdout, stderr io.Writer) int {
+func scenarioNew(args []string, stdout, stderr io.Writer, opts Options) int {
 	var id string
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		id, args = args[0], args[1:]
 	}
 	fl := flag.NewFlagSet("scenario new", flag.ContinueOnError)
 	fl.SetOutput(stderr)
-	product := fl.String("product", "", "the product the scenario is about (vault or boundary)")
+	product := fl.String("product", "", "the product the scenario is about ("+strings.Join(productNames(opts), " or ")+")")
 	dir := fl.String("dir", ".", "the folder to create the scenario folder in")
 	if err := fl.Parse(args); err != nil {
 		return exitUsage
@@ -218,7 +236,7 @@ func scenarioNew(args []string, stdout, stderr io.Writer) int {
 		return exitUsage
 	}
 
-	if err := createScenario(*dir, id, *product, stdout); err != nil {
+	if err := createScenario(*dir, id, *product, stdout, opts); err != nil {
 		fmt.Fprintf(stderr, "s1s scenario new: %v\n", err)
 		return exitFail
 	}
@@ -227,12 +245,12 @@ func scenarioNew(args []string, stdout, stderr io.Writer) int {
 
 // createScenario writes a scenario folder from the template and checks that it
 // passes validation, so a contributor starts from something valid.
-func createScenario(parent, id, product string, stdout io.Writer) error {
+func createScenario(parent, id, product string, stdout io.Writer, opts Options) error {
 	if !kebab.MatchString(id) {
 		return fmt.Errorf("the id %q must be kebab-case: lower-case letters and digits separated by single dashes", id)
 	}
-	if !contains(knownProducts(), product) {
-		return fmt.Errorf("--product must be one of: %s", strings.Join(knownProducts(), ", "))
+	if names := productNames(opts); !contains(names, product) {
+		return fmt.Errorf("--product must be one of: %s", strings.Join(names, ", "))
 	}
 
 	target := filepath.Join(parent, id)
@@ -251,7 +269,7 @@ func createScenario(parent, id, product string, stdout io.Writer) error {
 		}
 	}
 
-	reg, err := validatePath(target)
+	reg, err := validatePath(target, opts)
 	if err != nil || len(reg.List()) != 1 {
 		return fmt.Errorf("the new scenario does not pass validation, which is a bug in the template: %w", err)
 	}

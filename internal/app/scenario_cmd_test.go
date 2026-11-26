@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/pixambi/sev1situations/internal/product"
+	productfake "github.com/pixambi/sev1situations/internal/product/fake"
 )
 
 // scaffoldInto adds a valid scenario, taken from the scaffold, to a MapFS.
@@ -273,5 +276,32 @@ func TestDataDirectories(t *testing.T) {
 func TestTitleFromID(t *testing.T) {
 	if got := titleFromID("vault-raft-lost-quorum"); got != "Vault Raft Lost Quorum" {
 		t.Errorf("titleFromID = %q", got)
+	}
+}
+
+func TestScenarioCommandsUseTheProductRegistry(t *testing.T) {
+	products := product.NewRegistry()
+	for _, name := range []string{"vault", "postgres"} {
+		if err := products.Register(productfake.New(name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	opts := Options{Products: products}
+	parent := t.TempDir()
+
+	// A product that is registered is accepted, and one that is not is refused with the real list.
+	if code, _, e := cli(t, opts, "scenario", "new", "ok-one", "--product", "postgres", "--dir", parent); code != exitOK {
+		t.Errorf("a registered product was refused: %d %s", code, e)
+	}
+	code, _, errOut := cli(t, opts, "scenario", "new", "no-one", "--product", "boundary", "--dir", parent)
+	if code != exitFail || !strings.Contains(errOut, "must be one of: postgres, vault") {
+		t.Errorf("exit %d stderr %q, want the registered products named", code, errOut)
+	}
+
+	// Validation refuses a scenario for a product nobody registered (R-SCOPE-3).
+	writeScaffold(t, parent, "boundary-one", "boundary")
+	code, _, errOut = cli(t, opts, "scenario", "validate", filepath.Join(parent, "boundary-one"))
+	if code != exitFail || !strings.Contains(errOut, `"boundary" is not a known product`) {
+		t.Errorf("exit %d stderr %q", code, errOut)
 	}
 }
