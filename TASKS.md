@@ -93,8 +93,8 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
-| T-010 | `runtime` package: types and the `Runtime` interface (3.5), including options, results and labels. | R-RUN-3, 3.5 | M | Compiles. Documented. No Podman imports. |
-| T-011 | **Fake runtime**: in-memory containers, networks, files, scripted `Exec`, failure injection, log feeds. | 9, R-TEST-2 | M | Unit tests prove it behaves like the interface contract. |
+| T-010 | [x] `runtime` package: types and the `Runtime` interface (3.5), including options, results and labels. | R-RUN-3, 3.5 | M | Compiles. Documented. No Podman imports. |
+| T-011 | [x] **Fake runtime**: in-memory containers, networks, files, scripted `Exec`, failure injection, log feeds. | 9, R-TEST-2 | M | Unit tests prove it behaves like the interface contract. |
 | T-012 | `runtime/podman`: socket discovery and a minimal HTTP client over the unix socket. Clear errors when Podman is missing or the machine is stopped. | R-APP-7, 7 | M | Table tests with a fake server. Manual check on a real machine. |
 | T-013 | Podman: networks and containers (create, start, stop, remove), labels, host port publishing on `127.0.0.1`. | R-RUN-4, 7 | M | Integration test (tagged, needs Podman) creates and removes a labelled container and network. |
 | T-014 | Podman: `Exec` with captured output and exit code, `Copy` into a container, `Logs` stream. | 7 | M | Integration test passes. |
