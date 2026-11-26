@@ -27,3 +27,11 @@ export function Get(id: string): $CancellablePromise<$models.ScenarioDetail> {
 export function List(): $CancellablePromise<$models.ScenarioList> {
     return $Call.ByID(2937152870);
 }
+
+/**
+ * Versions lists the versions of a product's edition for the Start form, newest
+ * first. It needs the network, so it can fail while the machine is offline.
+ */
+export function Versions(product: string, edition: string): $CancellablePromise<string[] | null> {
+    return $Call.ByID(474843263, product, edition);
+}

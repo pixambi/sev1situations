@@ -45,8 +45,10 @@ func main() {
 	opts.Settings = store
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	deps := &gui.Deps{
-		Licensed:  app.Licensed(store),
-		Catalogue: func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
+		Licensed:   app.Licensed(store),
+		Versions:   app.Versions(products),
+		Instructor: store.Instructor,
+		Catalogue:  func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
 		Connect: func(ctx context.Context) (*engine.Engine, []string, error) {
 			conn, err := app.Connect(ctx, opts, log, nil)
 			if err != nil {

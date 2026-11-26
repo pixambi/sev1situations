@@ -52,3 +52,23 @@ test("follows the system's light and dark setting", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveAttribute("theme", "white");
 });
+
+test("Start opens the form for the scenario, and Cancel returns to the catalogue", async ({ page }) => {
+  await page.goto("/");
+  // Podman may be absent where this runs, which disables Start, so the form is opened through it only when enabled.
+  const start = page.getByRole("button", { name: "Start" });
+  await expect(start).toBeVisible();
+  test.skip(await start.isDisabled(), "Podman is not ready here, so Start is disabled");
+
+  await start.click();
+  await expect(page.getByRole("heading", { name: "Start Vault Sandbox" })).toBeVisible();
+  await expect(page.getByLabel("Instructor's name")).toBeVisible();
+  await expect(page.getByLabel("Trainee's name")).toBeVisible();
+  await expect(page.getByLabel("Node count")).toHaveValue("3");
+
+  await page.getByRole("button", { name: "Deploy" }).click();
+  await expect(page.getByText("Enter the trainee's name.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("heading", { name: "Scenarios", level: 2 })).toBeVisible();
+});

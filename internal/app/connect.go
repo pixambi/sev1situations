@@ -128,3 +128,32 @@ func Licensed(store *settings.Store) func(product string) bool {
 		return err == nil && ok && v != ""
 	}
 }
+
+// Versions returns a lister of a product's versions for the Start form, newest
+// first, as the core spells them (D1).
+func Versions(products *product.Registry) func(ctx context.Context, name, edition string) ([]string, error) {
+	return func(ctx context.Context, name, edition string) ([]string, error) {
+		p, ok := products.Get(name)
+		if !ok {
+			return nil, fmt.Errorf("there is no product %q", name)
+		}
+		var ed release.Edition
+		switch edition {
+		case "community":
+			ed = release.Community
+		case "enterprise":
+			ed = release.Enterprise
+		default:
+			return nil, fmt.Errorf("%q is not an edition", edition)
+		}
+		versions, err := p.Versions(ctx, ed)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]string, 0, len(versions))
+		for _, v := range versions {
+			out = append(out, v.Core)
+		}
+		return out, nil
+	}
+}

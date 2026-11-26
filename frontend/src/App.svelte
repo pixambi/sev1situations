@@ -14,6 +14,7 @@
   import type { PrereqStatus } from "../bindings/github.com/pixambi/sev1situations/internal/gui/models.js";
   import SystemStatus from "./lib/SystemStatus.svelte";
   import ScenariosPage from "./lib/ScenariosPage.svelte";
+  import StartForm from "./lib/StartForm.svelte";
   import { List } from "../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioservice.js";
   import type { ScenarioList } from "../bindings/github.com/pixambi/sev1situations/internal/gui/models.js";
   import { followRun, run, runActive } from "./lib/run.svelte.js";
@@ -25,6 +26,10 @@
   // Whether Podman is ready. The first check connects to it and cleans up after an earlier launch.
   let prereq: PrereqStatus | null = $state(null);
   let checking = $state(false);
+
+  // The page shown. The run page arrives with T-065, so a started run shows the catalogue's notice for now.
+  let page: "scenarios" | "start" = $state("scenarios");
+  let chosen = $state("");
 
   // The catalogue loads without Podman, so it can be browsed while the machine is down.
   let catalogue: ScenarioList | null = $state(null);
@@ -78,14 +83,26 @@
   {#if catalogueError}
     <InlineNotification lowContrast hideCloseButton kind="error" title="The scenarios could not be loaded" subtitle={catalogueError} />
   {:else if catalogue}
-    <ScenariosPage
-      {catalogue}
-      runActive={runActive(run.snapshot)}
-      podmanReady={prereq?.Ready ?? false}
-      onstart={() => {}}
-      onopenrun={() => {}}
-      onopensettings={() => {}}
-    />
+    {#if page === "start" && !runActive(run.snapshot)}
+      <StartForm
+        scenarioId={chosen}
+        onstarted={() => (page = "scenarios")}
+        oncancel={() => (page = "scenarios")}
+        onopensettings={() => {}}
+      />
+    {:else}
+      <ScenariosPage
+        {catalogue}
+        runActive={runActive(run.snapshot)}
+        podmanReady={prereq?.Ready ?? false}
+        onstart={(id) => {
+          chosen = id;
+          page = "start";
+        }}
+        onopenrun={() => {}}
+        onopensettings={() => {}}
+      />
+    {/if}
   {/if}
 </Content>
 

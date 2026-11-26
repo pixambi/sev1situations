@@ -25,6 +25,11 @@ export interface ParameterView {
      */
     "Min": number;
     "Max": number;
+
+    /**
+     * Options are the choices of an edition field.
+     */
+    "Options": string[] | null;
 }
 
 /**
@@ -75,6 +80,16 @@ export interface ScenarioDetail {
     "Objectives": string[] | null;
     "Prerequisites": string[] | null;
     "Parameters": ParameterView[] | null;
+
+    /**
+     * Licensed is true when a license is saved for the scenario's product.
+     */
+    "Licensed": boolean;
+
+    /**
+     * Instructor is the saved instructor name, or empty.
+     */
+    "Instructor": string;
 
     /**
      * Steps are the titles of the steps after the implicit Start step. A scenario

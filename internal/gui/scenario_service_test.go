@@ -1,6 +1,10 @@
 package gui
 
 import (
+	"context"
+	"errors"
+
+	"github.com/pixambi/sev1situations/internal/scenario"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,7 +16,7 @@ func TestScenarioListIsOrderedAndDescribesEachScenario(t *testing.T) {
 		"a": scenarioYAML("alpha", "Alpha", "vault", false),
 		"c": scenarioYAML("gate", "Gate", "boundary", true),
 	})
-	list, err := NewScenarioService(b.catalogue, nil).List()
+	list, err := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue}).List()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +43,7 @@ func TestScenarioListKeepsGoodScenariosAndReportsTheBrokenOne(t *testing.T) {
 		"good": scenarioYAML("good", "Good", "vault", false),
 		"bad":  "id: bad\nname: [not a string\n",
 	})
-	list, err := NewScenarioService(b.catalogue, nil).List()
+	list, err := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue}).List()
 	if err != nil {
 		t.Fatalf("one broken scenario must not hide the rest: %v", err)
 	}
@@ -53,7 +57,7 @@ func TestScenarioListKeepsGoodScenariosAndReportsTheBrokenOne(t *testing.T) {
 
 func TestAnEmptyCatalogueIsAnEmptyListNotNull(t *testing.T) {
 	b := newBackend(t, nil)
-	list, err := NewScenarioService(b.catalogue, nil).List()
+	list, err := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue}).List()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +68,7 @@ func TestAnEmptyCatalogueIsAnEmptyListNotNull(t *testing.T) {
 
 func TestScenarioGetReturnsTheStartForm(t *testing.T) {
 	b := newBackend(t, map[string]string{"a": scenarioYAML("alpha", "Alpha", "vault", true)})
-	d, err := NewScenarioService(b.catalogue, nil).Get("alpha")
+	d, err := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue}).Get("alpha")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +85,7 @@ func TestScenarioGetReturnsTheStartForm(t *testing.T) {
 
 func TestScenarioGetRefusesWhatItCannotFind(t *testing.T) {
 	b := newBackend(t, map[string]string{"a": scenarioYAML("alpha", "Alpha", "vault", false)})
-	svc := NewScenarioService(b.catalogue, nil)
+	svc := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue})
 	for _, id := range []string{"", "  ", "missing"} {
 		if _, err := svc.Get(id); err == nil {
 			t.Errorf("Get(%q) succeeded", id)
@@ -97,7 +101,7 @@ func TestAnEnterpriseOnlyScenarioNeedsALicenseUntilOneIsSaved(t *testing.T) {
 	})
 
 	needs := func(licensed LicenseCheck) map[string]bool {
-		list, err := NewScenarioService(b.catalogue, licensed).List()
+		list, err := NewScenarioService(ScenarioDeps{Catalogue: b.catalogue, Licensed: licensed}).List()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,5 +121,58 @@ func TestAnEnterpriseOnlyScenarioNeedsALicenseUntilOneIsSaved(t *testing.T) {
 	}
 	if got := needs(nil); got["ent"] {
 		t.Errorf("with no check, every product counts as licensed: %v", got)
+	}
+}
+
+func TestGetCarriesWhatTheStartFormNeedsBeyondTheScenario(t *testing.T) {
+	yaml := strings.Replace(scenarioYAML("alpha", "Alpha", "vault", false), "editions: [community]", "editions: [community, enterprise]", 1)
+	yaml = strings.Replace(yaml, "parameters:\n", "parameters:\n  - id: edition\n    type: edition\n    label: Edition\n    default: community\n", 1)
+	b := newBackend(t, map[string]string{"a": yaml})
+
+	d, err := NewScenarioService(ScenarioDeps{
+		Catalogue: b.catalogue, Licensed: func(string) bool { return false }, Instructor: func() string { return "Ada" },
+	}).Get("alpha")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Instructor != "Ada" || d.Licensed {
+		t.Errorf("instructor = %q, licensed = %v", d.Instructor, d.Licensed)
+	}
+	if got := d.Parameters[0]; got.Type != "edition" || !reflect.DeepEqual(got.Options, []string{"community", "enterprise"}) {
+		t.Errorf("edition parameter = %+v", got)
+	}
+}
+
+func TestVersionsAreListedForAnEditionAndFailuresAreExplained(t *testing.T) {
+	var asked [][2]string
+	svc := NewScenarioService(ScenarioDeps{
+		Catalogue: func() (*scenario.Registry, error) { return nil, nil },
+		Versions: func(_ context.Context, product, edition string) ([]string, error) {
+			asked = append(asked, [2]string{product, edition})
+			if product == "offline" {
+				return nil, errors.New("dial tcp: no route to host")
+			}
+			return []string{"2.2.2", "2.2.1"}, nil
+		},
+	})
+
+	got, err := svc.Versions("vault", "enterprise")
+	if err != nil || !reflect.DeepEqual(got, []string{"2.2.2", "2.2.1"}) || asked[0] != [2]string{"vault", "enterprise"} {
+		t.Fatalf("got %v, %v, asked %v", got, err, asked)
+	}
+
+	for _, c := range [][2]string{{"vault", "fips"}, {"", "community"}, {"  ", "community"}} {
+		if _, err := svc.Versions(c[0], c[1]); err == nil {
+			t.Errorf("Versions(%q, %q) succeeded", c[0], c[1])
+		}
+	}
+	if len(asked) != 1 {
+		t.Errorf("a refused request still reached the lister: %v", asked)
+	}
+	if _, err := svc.Versions("offline", "community"); err == nil || !strings.Contains(err.Error(), "online") {
+		t.Errorf("offline error = %v", err)
+	}
+	if _, err := NewScenarioService(ScenarioDeps{Catalogue: svc.Catalogue}).Versions("vault", "community"); err == nil {
+		t.Error("a build with no lister listed versions")
 	}
 }

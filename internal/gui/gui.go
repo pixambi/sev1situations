@@ -21,6 +21,10 @@ type Deps struct {
 	Catalogue Catalogue
 	// Licensed reports whether a license is saved for a product.
 	Licensed LicenseCheck
+	// Versions lists a product's versions for the Start form.
+	Versions VersionLister
+	// Instructor returns the saved instructor name.
+	Instructor func() string
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
@@ -51,7 +55,7 @@ func Run(assets fs.FS, deps *Deps) error {
 	if deps != nil {
 		conn = newLink(ctx, deps.Connect, emit)
 		services = []application.Service{
-			application.NewService(NewScenarioService(deps.Catalogue, deps.Licensed)),
+			application.NewService(NewScenarioService(ScenarioDeps{Catalogue: deps.Catalogue, Licensed: deps.Licensed, Versions: deps.Versions, Instructor: deps.Instructor, Context: ctx})),
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
 		}
