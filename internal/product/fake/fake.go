@@ -30,6 +30,12 @@ type Product struct {
 	// DeployErr, if set, makes Deploy fail after starting its containers, as a
 	// real failed deployment leaves them behind.
 	DeployErr error
+
+	// Specs records every spec Deploy was given, in order, so a test can check
+	// what its caller asked for.
+	Specs []product.DeploySpec
+	// Revived records the nodes Revive was asked for.
+	Revived []string
 }
 
 var _ product.Product = (*Product)(nil)
@@ -65,6 +71,7 @@ func (p *Product) Versions(_ context.Context, e release.Edition) ([]release.Vers
 
 // Deploy implements product.Product.
 func (p *Product) Deploy(ctx context.Context, rt runtime.Runtime, spec product.DeploySpec) (product.Deployment, error) {
+	p.Specs = append(p.Specs, spec)
 	d := product.Deployment{
 		Cluster: spec.Cluster, Product: p.name, Version: spec.Version,
 		Creds: map[string]string{"rootToken": RootToken},
@@ -116,6 +123,7 @@ func (p *Product) NodeActions(product.Deployment, string) []product.NodeAction {
 
 // Revive implements product.Product: it starts a new container with the node's name.
 func (p *Product) Revive(ctx context.Context, rt runtime.Runtime, spec product.DeploySpec, d product.Deployment, node string) (primitive.Node, error) {
+	p.Revived = append(p.Revived, node)
 	for _, n := range d.Nodes {
 		if n.Name != node {
 			continue
