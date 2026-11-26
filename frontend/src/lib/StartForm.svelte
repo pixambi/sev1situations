@@ -190,8 +190,8 @@
       {/if}
 
       {#if deploying}
-        <InlineLoading description={progress.at(-1) ?? "Starting the deployment"} />
-        {#if progress.length > 1}
+        <InlineLoading description={progress.length > 0 ? "Deploying" : "Starting the deployment"} />
+        {#if progress.length > 0}
           <ol class="plain" aria-label="Deployment progress">
             {#each progress as line, i (i)}<li>{line}</li>{/each}
           </ol>

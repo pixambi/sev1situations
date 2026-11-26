@@ -46,6 +46,14 @@ export function End(): $CancellablePromise<engine$0.Snapshot> {
 }
 
 /**
+ * Guide returns a step's written guidance for the instructor. Only steps the run has
+ * reached have one, so the solution of a later step is not given away by accident.
+ */
+export function Guide(stepID: string): $CancellablePromise<$models.StepGuide> {
+    return $Call.ByID(986808809, stepID);
+}
+
+/**
  * NodeAction stops, starts, removes or revives one node.
  */
 export function NodeAction(node: string, action: string): $CancellablePromise<engine$0.Snapshot> {

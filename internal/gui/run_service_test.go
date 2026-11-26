@@ -173,3 +173,24 @@ func TestEndWithNoRunSaysSo(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestGuideIsOnlyGivenForStepsTheRunHasReached(t *testing.T) {
+	_, svc := twoStep(t)
+	if _, err := svc.Guide("break"); err == nil || !strings.Contains(err.Error(), "No scenario is running") {
+		t.Errorf("with no run: %v", err)
+	}
+	if _, err := svc.Start(form()); err != nil {
+		t.Fatal(err)
+	}
+
+	g, err := svc.Guide("break")
+	if err != nil || g.Briefing != "# break" {
+		t.Fatalf("active step: %+v, %v", g, err)
+	}
+	if _, err := svc.Guide("fix"); err == nil || !strings.Contains(err.Error(), "not been reached") {
+		t.Errorf("a locked step: %v", err)
+	}
+	if _, err := svc.Guide("nope"); err == nil || !strings.Contains(err.Error(), `"nope"`) {
+		t.Errorf("an unknown step: %v", err)
+	}
+}

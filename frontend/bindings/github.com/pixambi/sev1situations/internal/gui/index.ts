@@ -16,5 +16,6 @@ export type {
     ScenarioDetail,
     ScenarioList,
     ScenarioSummary,
-    StartForm
+    StartForm,
+    StepGuide
 } from "./models.js";

@@ -158,6 +158,45 @@ func (s *RunService) NodeAction(node, action string) (engine.Snapshot, error) {
 	return s.step("", false, func(eng *engine.Engine) error { return eng.NodeAction(s.ctx, node, a) })
 }
 
+// Guide returns a step's written guidance for the instructor. Only steps the run has
+// reached have one, so the solution of a later step is not given away by accident.
+func (s *RunService) Guide(stepID string) (StepGuide, error) {
+	eng, err := s.engines()
+	if err != nil {
+		return StepGuide{}, err
+	}
+	snap := eng.Snapshot()
+	if snap.Status == engine.StatusIdle {
+		return StepGuide{}, plain(engine.ErrNoRun)
+	}
+	var step *engine.StepView
+	for i := range snap.Steps {
+		if snap.Steps[i].ID == stepID {
+			step = &snap.Steps[i]
+		}
+	}
+	switch {
+	case step == nil:
+		return StepGuide{}, notice(fmt.Sprintf("There is no step %q.", stepID))
+	case step.State == engine.StepLocked:
+		return StepGuide{}, notice("That step has not been reached yet.")
+	}
+
+	reg, err := s.catalogue()
+	if reg == nil {
+		return StepGuide{}, fmt.Errorf("load the scenarios: %w", err)
+	}
+	entry, ok := reg.Get(snap.ScenarioID)
+	if !ok {
+		return StepGuide{}, notice("The scenario that is running is no longer in the catalogue.")
+	}
+	text, err := entry.Scenario.ReadFile(step.Guide)
+	if err != nil {
+		return StepGuide{}, fmt.Errorf("read the guidance for step %q: %w", stepID, err)
+	}
+	return parseGuide(string(text)), nil
+}
+
 // step runs one operation on the engine. With active set it first refuses a step
 // that is no longer the active one, as when the page shows an older state than the
 // run. It publishes the state afterwards, which the event stream may have missed,

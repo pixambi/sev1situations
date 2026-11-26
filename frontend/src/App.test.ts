@@ -11,10 +11,9 @@ vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/systemservic
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioservice.js", () => ({
   List: vi.fn().mockResolvedValue({ Scenarios: [], Problems: [] }),
 }));
-vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({
-  Current: vi.fn().mockResolvedValue({ Status: "idle", ActiveStep: -1 }),
-}));
-vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} } }));
+const current = vi.hoisted(() => vi.fn());
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({ Current: current, Guide: vi.fn() }));
+vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} }, Browser: { OpenURL: vi.fn() } }));
 
 // A controllable stand-in for the system's colour scheme.
 function systemScheme(initiallyDark: boolean) {
@@ -29,11 +28,15 @@ function systemScheme(initiallyDark: boolean) {
   return { change: (dark: boolean) => listeners.forEach((l) => l({ matches: dark } as MediaQueryListEvent)), listeners };
 }
 
-beforeEach(() => prereq.mockResolvedValue({ Ready: true, Message: "", Notices: [] }));
+beforeEach(() => {
+  prereq.mockResolvedValue({ Ready: true, Message: "", Notices: [] });
+  current.mockResolvedValue({ Status: "idle", ActiveStep: -1 });
+});
 
 afterEach(() => {
   cleanup();
   prereq.mockReset();
+  current.mockReset();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("theme");
 });
@@ -91,5 +94,30 @@ describe("App", () => {
 
     cleanup();
     expect(system.listeners).toHaveLength(0); // no listener is left behind
+  });
+
+  it("shows the run while one exists, and lets the instructor look at the catalogue and come back", async () => {
+    systemScheme(false);
+    current.mockResolvedValue({
+      Status: "active", RunID: "abc", ScenarioID: "demo", ScenarioName: "Demo scenario", Instructor: "Ada", Trainee: "Grace",
+      StartedAt: "2026-11-26T09:00:00Z", EndedAt: "0001-01-01T00:00:00Z", ActiveStep: -1, Steps: [], Events: [], Nodes: [],
+    });
+    render(App);
+
+    expect(await screen.findByRole("heading", { name: "Demo scenario" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Scenarios" }));
+    expect(await screen.findByRole("heading", { name: "Scenarios", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Demo scenario" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Current run" }));
+    expect(await screen.findByRole("heading", { name: "Demo scenario" })).toBeInTheDocument();
+  });
+
+  it("offers no page switcher when there is no run", async () => {
+    systemScheme(false);
+    render(App);
+    await screen.findByRole("heading", { name: "Scenarios", level: 2 });
+    expect(screen.queryByRole("tab", { name: "Current run" })).not.toBeInTheDocument();
   });
 });

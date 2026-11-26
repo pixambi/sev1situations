@@ -108,6 +108,16 @@ tasks:
       - cd frontend && npm run build
       - cd frontend && npx playwright test
 
+  test:e2e:real:
+    summary: Deploys the Vault sandbox from the page on real Podman, ends it and checks nothing is left
+    desc: |
+      Needs a running Podman machine, and the network or a cached Vault binary.
+      It takes about a minute and is not run by CI.
+    cmds:
+      - wails3 generate bindings -f '-tags=server' -clean=true -ts -i ./cmd/s1s
+      - cd frontend && npm run build
+      - cd frontend && REAL_DEPLOY=1 npx playwright test real-deploy
+
   release:package:
     summary: Zips the .app and writes SHA256SUMS for a GitHub release
     desc: |

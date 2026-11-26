@@ -146,3 +146,29 @@ export interface StartForm {
      */
     "Params": { [_ in string]?: any } | null;
 }
+
+/**
+ * StepGuide is a step's written guidance for the instructor (R-SCN-7), as Markdown.
+ * The frontend renders it. Go sends text, never HTML.
+ */
+export interface StepGuide {
+    /**
+     * Briefing is what the instructor tells the trainee.
+     */
+    "Briefing": string;
+
+    /**
+     * Hints are nudges the instructor can give. They stay collapsed until asked for.
+     */
+    "Hints": string;
+
+    /**
+     * Solution is how to fix it. It stays collapsed until asked for.
+     */
+    "Solution": string;
+
+    /**
+     * References link to documentation.
+     */
+    "References": string;
+}
