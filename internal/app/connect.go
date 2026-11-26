@@ -116,8 +116,16 @@ func OpenSettings(opts Options) (*settings.Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return settings.Open(dir, products.SettingsFields()...)
+	// The application's own settings sit beside the products' fields, so the page lists them all alike.
+	return settings.Open(dir, append(products.SettingsFields(), AppSettings...)...)
 }
+
+// AppSettings are the settings the application itself keeps, as opposed to a product.
+var AppSettings = []settings.Field{{
+	Key:   "app.theme",
+	Label: "Theme",
+	Help:  "Light or dark. By default the application follows the system's appearance.",
+}}
 
 // Licensed returns a check of whether a license is saved for a product. Products
 // keep it in the setting "<product>.license" (R-SET-3).

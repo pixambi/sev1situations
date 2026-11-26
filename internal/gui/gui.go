@@ -9,6 +9,8 @@ import (
 	"io/fs"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+
+	"github.com/pixambi/sev1situations/internal/settings"
 )
 
 // Deps are what the services work over. The program supplies them, so this
@@ -25,6 +27,8 @@ type Deps struct {
 	Versions VersionLister
 	// Instructor returns the saved instructor name.
 	Instructor func() string
+	// Settings is the saved settings store.
+	Settings *settings.Store
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
@@ -60,6 +64,7 @@ func Run(assets fs.FS, deps *Deps) error {
 			application.NewService(NewScenarioService(ScenarioDeps{Catalogue: deps.Catalogue, Licensed: deps.Licensed, Versions: deps.Versions, Instructor: deps.Instructor, Context: ctx})),
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
+			application.NewService(NewSettingsService(deps.Settings)),
 			application.NewService(NewClusterService(ctx, conn)),
 			application.NewService(logs),
 			application.NewService(NewTerminalService(ctx, conn, emit)),

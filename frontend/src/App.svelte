@@ -7,7 +7,7 @@
   import "@fontsource/ibm-plex-sans/latin-ext-600.css";
   import "@fontsource/ibm-plex-mono/latin-400.css";
   import "@fontsource/ibm-plex-mono/latin-ext-400.css";
-  import { Content, ContentSwitcher, Header, InlineNotification, Switch, Theme } from "carbon-components-svelte";
+  import { Button, Content, ContentSwitcher, Header, HeaderGlobalAction, HeaderUtilities, InlineNotification, Switch, Theme } from "carbon-components-svelte";
   import { onMount } from "svelte";
   import { Events } from "@wailsio/runtime";
   import { Prereq } from "../bindings/github.com/pixambi/sev1situations/internal/gui/systemservice.js";
@@ -16,13 +16,27 @@
   import ScenariosPage from "./lib/ScenariosPage.svelte";
   import StartForm from "./lib/StartForm.svelte";
   import RunPage from "./lib/RunPage.svelte";
+  import SettingsPage from "./lib/SettingsPage.svelte";
+  import SettingsIcon from "carbon-icons-svelte/lib/Settings.svelte";
+  import { Get as GetSettings } from "../bindings/github.com/pixambi/sev1situations/internal/gui/settingsservice.js";
   import { List } from "../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioservice.js";
   import type { ScenarioList } from "../bindings/github.com/pixambi/sev1situations/internal/gui/models.js";
   import { followRun, run, runActive } from "./lib/run.svelte.js";
 
-  // The theme follows the system setting. A user override arrives with the Settings page.
+  // The theme follows the system unless Settings says light or dark.
   const dark = window.matchMedia("(prefers-color-scheme: dark)");
-  let theme: "white" | "g100" = $state(dark.matches ? "g100" : "white");
+  let systemTheme: "white" | "g100" = $state(dark.matches ? "g100" : "white");
+  let override = $state("");
+  const theme = $derived<"white" | "g100">(override === "light" ? "white" : override === "dark" ? "g100" : systemTheme);
+
+  async function loadSettings() {
+    try {
+      const v = await GetSettings();
+      override = v.Fields?.find((f) => f.Key === "app.theme")?.Display ?? "";
+    } catch {
+      override = ""; // without the settings, the system's theme is used
+    }
+  }
 
   // Whether Podman is ready. The first check connects to it and cleans up after an earlier launch.
   let prereq: PrereqStatus | null = $state(null);
@@ -30,7 +44,7 @@
 
   // The page shown while no run exists is the catalogue or the Start form. A run takes over, and the
   // instructor can still look at the catalogue to see why starting another is blocked.
-  let page = $state<"scenarios" | "start" | "run">("scenarios");
+  let page = $state<"scenarios" | "start" | "run" | "settings">("scenarios");
   let chosen = $state("");
   const active = $derived(runActive(run.snapshot));
   $effect(() => {
@@ -69,12 +83,13 @@
   }
 
   onMount(() => {
-    const follow = (e: MediaQueryListEvent) => (theme = e.matches ? "g100" : "white");
+    const follow = (e: MediaQueryListEvent) => (systemTheme = e.matches ? "g100" : "white");
     dark.addEventListener("change", follow);
     const stopPrereq = Events.On("system:prereq", (e) => (prereq = e.data as PrereqStatus));
     const stopRun = followRun();
     void check();
     void loadCatalogue();
+    void loadSettings();
     return () => {
       stopRun();
       dark.removeEventListener("change", follow);
@@ -83,17 +98,19 @@
   });
 </script>
 
-<Theme bind:theme />
+<Theme {theme} />
 
 <Header>
   <svelte:fragment slot="company">Sev1</svelte:fragment>
   <svelte:fragment slot="platform">Situations</svelte:fragment>
+  <HeaderUtilities>
+    <HeaderGlobalAction aria-label="Settings" icon={SettingsIcon} isActive={page === "settings"} on:click={() => (page = "settings")} />
+  </HeaderUtilities>
 </Header>
-
 
 <Content>
   <h1>Sev1 Situations</h1>
-  {#if active}
+  {#if active && page !== "settings"}
     <nav aria-label="Pages" class="pages">
       <ContentSwitcher selectedIndex={shownPage} on:change={(e) => switchPage(e.detail)}>
         <Switch text="Scenarios" />
@@ -102,7 +119,15 @@
     </nav>
   {/if}
   <SystemStatus status={prereq} {checking} onretry={check} />
-  {#if catalogueError}
+  {#if page === "settings"}
+    <Button kind="ghost" size="small" on:click={() => (page = active ? "run" : "scenarios")}>Back</Button>
+    <SettingsPage
+      onchanged={() => {
+        void loadSettings();
+        void loadCatalogue(); // a saved license changes which scenarios can be started
+      }}
+    />
+  {:else if catalogueError}
     <InlineNotification lowContrast hideCloseButton kind="error" title="The scenarios could not be loaded" subtitle={catalogueError} />
   {:else if catalogue}
     {#if page === "run" && run.snapshot}
@@ -112,7 +137,7 @@
         scenarioId={chosen}
         onstarted={() => (page = "run")}
         oncancel={() => (page = "scenarios")}
-        onopensettings={() => {}}
+        onopensettings={() => (page = "settings")}
       />
     {:else}
       <ScenariosPage
@@ -124,7 +149,7 @@
           page = "start";
         }}
         onopenrun={() => (page = "run")}
-        onopensettings={() => {}}
+        onopensettings={() => (page = "settings")}
       />
     {/if}
   {/if}

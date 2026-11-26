@@ -5,6 +5,7 @@ import * as ClusterService from "./clusterservice.js";
 import * as LogService from "./logservice.js";
 import * as RunService from "./runservice.js";
 import * as ScenarioService from "./scenarioservice.js";
+import * as SettingsService from "./settingsservice.js";
 import * as SystemService from "./systemservice.js";
 import * as TerminalService from "./terminalservice.js";
 export {
@@ -12,6 +13,7 @@ export {
     LogService,
     RunService,
     ScenarioService,
+    SettingsService,
     SystemService,
     TerminalService
 };
@@ -26,6 +28,8 @@ export type {
     ScenarioList,
     ScenarioSummary,
     SectionView,
+    SettingField,
+    SettingsView,
     StartForm,
     StepGuide,
     StreamInfo

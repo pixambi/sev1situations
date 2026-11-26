@@ -187,6 +187,34 @@ export interface SectionView {
 }
 
 /**
+ * SettingField is one setting as the page shows it.
+ */
+export interface SettingField {
+    "Key": string;
+    "Label": string;
+    "Help": string;
+    "Secret": boolean;
+
+    /**
+     * Set is true when a value is saved.
+     */
+    "Set": boolean;
+
+    /**
+     * Display is the saved value, or a mask for a secret, or empty.
+     */
+    "Display": string;
+}
+
+/**
+ * SettingsView is what the settings page shows.
+ */
+export interface SettingsView {
+    "Instructor": string;
+    "Fields": SettingField[] | null;
+}
+
+/**
  * StartForm is what the Start step collects (R-SCN-11).
  */
 export interface StartForm {

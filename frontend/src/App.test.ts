@@ -12,6 +12,8 @@ vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioserv
   List: vi.fn().mockResolvedValue({ Scenarios: [], Problems: [] }),
 }));
 const current = vi.hoisted(() => vi.fn());
+const settingsGet = vi.hoisted(() => vi.fn());
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/settingsservice.js", () => ({ Get: settingsGet, SaveField: vi.fn(), SaveInstructor: vi.fn() }));
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({ Current: current, Guide: vi.fn() }));
 vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} }, Browser: { OpenURL: vi.fn() } }));
 
@@ -31,12 +33,14 @@ function systemScheme(initiallyDark: boolean) {
 beforeEach(() => {
   prereq.mockResolvedValue({ Ready: true, Message: "", Notices: [] });
   current.mockResolvedValue({ Status: "idle", ActiveStep: -1 });
+  settingsGet.mockResolvedValue({ Instructor: "", Fields: [{ Key: "app.theme", Display: "" }] });
 });
 
 afterEach(() => {
   cleanup();
   prereq.mockReset();
   current.mockReset();
+  settingsGet.mockReset();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("theme");
 });
@@ -119,5 +123,25 @@ describe("App", () => {
     render(App);
     await screen.findByRole("heading", { name: "Scenarios", level: 2 });
     expect(screen.queryByRole("tab", { name: "Current run" })).not.toBeInTheDocument();
+  });
+
+  it("uses the theme chosen in Settings over the system's, and follows the system when none is chosen", async () => {
+    systemScheme(false);
+    settingsGet.mockResolvedValue({ Instructor: "", Fields: [{ Key: "app.theme", Display: "dark" }] });
+    render(App);
+    await waitFor(() => expect(document.documentElement.getAttribute("theme")).toBe("g100"));
+  });
+
+  it("opens Settings from the header, and Back returns to the scenarios", async () => {
+    systemScheme(false);
+    settingsGet.mockResolvedValue({ Instructor: "Ada", Fields: [] });
+    render(App);
+    await screen.findByRole("heading", { name: "Scenarios", level: 2 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings", level: 2 })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("heading", { name: "Scenarios", level: 2 })).toBeInTheDocument();
   });
 });

@@ -47,6 +47,7 @@ func main() {
 		Licensed:   app.Licensed(store),
 		Versions:   app.Versions(products),
 		Instructor: store.Instructor,
+		Settings:   store,
 		Catalogue:  func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
 		Connect: func(ctx context.Context) (*gui.Connection, error) {
 			conn, err := app.Connect(ctx, opts, log, nil)
