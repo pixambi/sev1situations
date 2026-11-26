@@ -288,10 +288,17 @@ func (r *Runtime) Exec(_ context.Context, id string, cmd []string, o runtime.Exe
 	if err != nil {
 		return runtime.ExecResult{}, err
 	}
-	if o.Detach || fn == nil {
+	if fn == nil {
 		return runtime.ExecResult{}, nil
 	}
-	return fn(c.info, cmd, o)
+	res, err := fn(c.info, cmd, o)
+	if o.Detach {
+		// A detached command returns as soon as it has started, so its output
+		// is never seen. The script still runs, which is how a test can make
+		// the process it starts take effect.
+		return runtime.ExecResult{}, nil
+	}
+	return res, err
 }
 
 // Attach implements runtime.Runtime. The terminal echoes what is written to it.

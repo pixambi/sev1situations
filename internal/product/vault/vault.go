@@ -35,11 +35,15 @@ const (
 type Options struct {
 	// Releases lists and fetches versions. It defaults to the public release site.
 	Releases *release.Client
+	// Timing sets how long the deployment waits for Vault. Zero values take the
+	// defaults, which suit a real machine.
+	Timing Timing
 }
 
 // Product is the Vault product.
 type Product struct {
 	releases *release.Client
+	timing   Timing
 }
 
 var _ product.Product = (*Product)(nil)
@@ -49,7 +53,7 @@ func New(o Options) *Product {
 	if o.Releases == nil {
 		o.Releases = release.NewClient()
 	}
-	return &Product{releases: o.Releases}
+	return &Product{releases: o.Releases, timing: o.Timing.withDefaults()}
 }
 
 // Name implements product.Product.
@@ -119,11 +123,6 @@ func RequireLicense(s product.Settings, e release.Edition) (string, error) {
 		return "", fmt.Errorf("%w. The %s edition needs one: add it in Settings", ErrNoLicense, e)
 	}
 	return license, nil
-}
-
-// Deploy implements product.Product. It is built in T-052.
-func (*Product) Deploy(context.Context, runtime.Runtime, product.DeploySpec) (product.Deployment, error) {
-	return product.Deployment{}, errors.New("deploying Vault is not built yet")
 }
 
 // Describe implements product.Product. It is built in T-053.

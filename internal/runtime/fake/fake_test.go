@@ -63,7 +63,7 @@ func TestScriptedExec(t *testing.T) {
 
 	got, err := f.Exec(context.Background(), c.ID, []string{"vault", "status"}, runtime.ExecOptions{Detach: true})
 	if err != nil || got != (runtime.ExecResult{}) {
-		t.Errorf("detached Exec = %+v, %v; want an empty result without running the script", got, err)
+		t.Errorf("detached Exec = %+v, %v; want an empty result, as a detached command returns before it has any output", got, err)
 	}
 }
 
@@ -333,5 +333,19 @@ func TestRequireImagesFailsForAMissingImage(t *testing.T) {
 	}
 	if _, err := f.StartContainer(context.Background(), opts); err != nil {
 		t.Errorf("StartContainer after EnsureImage = %v", err)
+	}
+}
+
+func TestDetachedExecStillRunsTheScript(t *testing.T) {
+	f := fake.New()
+	c := startOne(t, f, "a")
+	ran := false
+	f.SetExec(func(_ runtime.Container, cmd []string, o runtime.ExecOptions) (runtime.ExecResult, error) {
+		ran = o.Detach && len(cmd) == 1 && cmd[0] == "server"
+		return runtime.ExecResult{Stdout: "never seen"}, nil
+	})
+	got, err := f.Exec(context.Background(), c.ID, []string{"server"}, runtime.ExecOptions{Detach: true})
+	if err != nil || got != (runtime.ExecResult{}) || !ran {
+		t.Errorf("Exec = %+v, %v, ran=%v; want the script to see the detached command and its output discarded", got, err, ran)
 	}
 }
