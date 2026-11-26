@@ -39,6 +39,11 @@ type fakeDeployer struct {
 	fail    []error // each Deploy takes the next error, if any
 	params  []map[string]any
 	runs    []runtime.Run
+
+	// actions, if set, replaces the default of every action on every node.
+	actions   map[string][]NodeAction
+	reviveErr error
+	revived   int
 }
 
 func (d *fakeDeployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario.Scenario, params map[string]any, progress func(string)) (Deployment, error) {
@@ -66,7 +71,31 @@ func (d *fakeDeployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario
 	}
 	d.world.reset()
 	progress("the cluster is healthy")
-	return Deployment{Nodes: nodes, Creds: map[string]map[string]string{"primary": {"rootToken": rootToken}}}, nil
+
+	actions := d.actions
+	if actions == nil {
+		actions = map[string][]NodeAction{}
+		for name := range nodes {
+			actions[name] = []NodeAction{ActionStop, ActionStart, ActionRemove, ActionRevive}
+		}
+	}
+	return Deployment{Nodes: nodes, Actions: actions, Creds: map[string]map[string]string{"primary": {"rootToken": rootToken}}}, nil
+}
+
+// Revive recreates a removed node, as the real deployer would rejoin it to its cluster.
+func (d *fakeDeployer) Revive(ctx context.Context, run runtime.Run, _ *scenario.Scenario, _ map[string]any, _ Deployment, node string) (primitive.Node, error) {
+	d.mu.Lock()
+	d.revived++
+	err := d.reviveErr
+	d.mu.Unlock()
+	if err != nil {
+		return primitive.Node{}, err
+	}
+	c, e := d.rt.StartContainer(ctx, runtime.ContainerOptions{Run: run, Name: node, Image: "alpine:3"})
+	if e != nil {
+		return primitive.Node{}, e
+	}
+	return primitive.Node{Name: node, Cluster: "primary", ContainerID: c.ID, IP: "10.89.1.99"}, nil
 }
 
 func (d *fakeDeployer) count() int { d.mu.Lock(); defer d.mu.Unlock(); return d.deploys }

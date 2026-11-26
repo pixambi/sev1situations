@@ -83,6 +83,7 @@ const (
 	EventRunFinished    EventKind = "run-finished"
 	EventRunEnded       EventKind = "run-ended"
 	EventTeardown       EventKind = "teardown"
+	EventNodeAction     EventKind = "node-action"
 )
 
 // Event is one thing that happened during a run.
@@ -117,6 +118,7 @@ type run struct {
 	deployErr  string
 	result     string
 	deployment Deployment
+	nodeState  map[string]NodeState
 	redactor   *primitive.Redactor
 	steps      []*stepState
 	events     []Event

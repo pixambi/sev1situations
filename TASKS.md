@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2) and M2 are done, and M3 is nearly done (T-039 to T-041 remain). Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2) and M2 are done, M3 is done, and M4 is next. Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -125,11 +125,11 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-036 | [x] Generic primitives: `container.*`, `file.*`, `http.request`, `wait.until`, `assert.*`. | 4.5 | L | Each has tests against the fake runtime. |
 | T-037 | [x] `engine`: the single run, deploy, step state machine (4.6), no-skip rule, per-step timing, notes and rating, goroutines owned by the run with one cancelable context. | R-SCN-8, R-SCN-9, 4.6 | L | State machine tests for every transition and failure row in 4.6. |
 | T-038 | [x] Engine: roll back to a reset point (default redeploy and replay, with override), end early, teardown, events recorded. | R-SCN-6, R-SCN-10, 4.7 | L | Tests with the fake runtime. |
-| T-039 | Engine: node actions (stop, start, remove, revive) driven by what the product declares, with removed-node placeholders. | R-VIEW-6 | M | Tests. |
+| T-039 | [x] Engine: node actions (stop, start, remove, revive) driven by what the product declares, with removed-node placeholders. | R-VIEW-6 | M | Tests. |
 | T-040 | [x] CLI: `s1s scenario list`, `validate`, `new` (scaffold from a template). | R-CONTRIB-6 | M | `new` produces a folder that passes `validate`. |
 | T-041 | [x] Engine event stream (state changes, progress, log lines) that the server can subscribe to. | 3.4 | M | Tests. |
 
-**M3 acceptance test:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it. M3 is done when T-039 to T-041 are done as well.
+**M3 acceptance test:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it. T-039 to T-041 are done too, so M3 is complete.
 
 **M3 done when (original wording):** a fixture scenario with a start step, a breakage and a verification runs start to finish against the fake runtime in a Go test, including roll back and end early.
 

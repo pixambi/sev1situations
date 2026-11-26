@@ -42,6 +42,9 @@ var (
 type Deployment struct {
 	// Nodes are the deployment's containers by node name, for example node-1.
 	Nodes map[string]primitive.Node
+	// Actions declares which node actions each node offers, by node name
+	// (R-VIEW-6). The product decides: a node with no entry offers none.
+	Actions map[string][]NodeAction
 	// Creds are credentials keyed by cluster or service name, for example
 	// primary -> rootToken. They are used in templates and redacted from
 	// output. They never leave the engine in a Snapshot (R-REPORT-5).
@@ -211,7 +214,12 @@ func (e *Engine) redeployFrom(ctx context.Context, r *run, removeFirst bool) err
 	e.mu.Lock()
 	r.deployment = dep
 	r.redactor = redactorFor(dep)
+	r.nodeState = map[string]NodeState{}
+	for name := range dep.Nodes {
+		r.nodeState[name] = NodeRunning
+	}
 	e.mu.Unlock()
+	e.refreshNodes(ctx, r)
 	e.emit(r, EventDeployComplete, "", "the deployment is healthy")
 
 	// A rollback that had to redeploy carries on by replaying the actions.

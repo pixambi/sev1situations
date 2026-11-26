@@ -29,6 +29,9 @@ type Snapshot struct {
 	DeployError string
 	// ActiveStep is the index of the step in progress, or -1.
 	ActiveStep int
+	// Nodes lists the deployment's nodes in name order, with removed nodes kept
+	// as placeholders.
+	Nodes []NodeView
 	// Steps lists every step in order.
 	Steps []StepView
 	// Events lists everything that happened, in order.
@@ -87,6 +90,7 @@ func (e *Engine) snapshotLocked(r *run) Snapshot {
 	}
 	active := r.activeIndex()
 	s.ActiveStep = active
+	s.Nodes = e.nodeViewsLocked(r, idle)
 
 	for i, st := range r.steps {
 		v := StepView{

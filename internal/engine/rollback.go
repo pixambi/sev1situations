@@ -122,6 +122,7 @@ func (e *Engine) finishRollback(ctx context.Context, r *run) error {
 	id, nextID := r.steps[idx].def.ID, r.steps[next].def.ID
 	e.mu.Unlock()
 
+	e.refreshNodes(ctx, r)
 	e.emit(r, EventRollback, id, fmt.Sprintf("rolled back to step %s, step %s is active", id, nextID))
 	e.emit(r, EventStepActive, nextID, "step "+nextID+" is active")
 	return nil

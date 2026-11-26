@@ -45,6 +45,7 @@ func (e *Engine) Apply(ctx context.Context) error {
 	if opCtx.Err() != nil {
 		return opCtx.Err()
 	}
+	e.refreshNodes(opCtx, r) // an action may have stopped or removed nodes
 	if act.Status != outcomePass {
 		e.mu.Lock()
 		st.state, st.last = StepActive, &act
@@ -90,6 +91,7 @@ func (e *Engine) verifyStep(ctx context.Context, r *run, st *stepState) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+	e.refreshNodes(ctx, r)
 	e.mu.Lock()
 	st.verified = out.Status == outcomePass
 	st.last = &out
