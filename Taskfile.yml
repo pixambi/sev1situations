@@ -47,6 +47,27 @@ tasks:
     cmds:
       - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
 
+  lint:
+    summary: Runs go vet, golangci-lint and svelte-check
+    cmds:
+      - go vet ./...
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run
+      - cd frontend && npm run check
+
+  vuln:
+    summary: Scans the Go dependencies for known vulnerabilities
+    cmds:
+      - go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+
+  docs:
+    summary: Builds the Hugo documentation site
+    desc: The site arrives in milestone M9, so this fails until docs/ exists.
+    preconditions:
+      - sh: test -d docs
+        msg: "docs/ does not exist yet. The Hugo site is built in milestone M9."
+    cmds:
+      - hugo --source docs --minify
+
   test:
     summary: Runs the Go and frontend unit tests
     cmds:
