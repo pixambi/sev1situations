@@ -34,6 +34,12 @@ func main() {
 		os.Exit(code)
 	}
 
+	// A second signal ends the process at once, in case ending the run is taking too long.
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+
 	// With none it opens the window. The window opens even when Podman is not
 	// ready, and connects when the page asks (R-APP-2).
 	store, err := app.OpenSettings(opts)
@@ -57,7 +63,7 @@ func main() {
 			return &gui.Connection{Engine: conn.Engine, View: conn.Deployer.View, Runtime: conn.Runtime, LogStreams: conn.Deployer.LogStreams, Notices: conn.Startup.Notices()}, nil
 		},
 	}
-	if err := gui.Run(sev1situations.Frontend, deps); err != nil {
+	if err := gui.Run(ctx, sev1situations.Frontend, deps); err != nil {
 		fmt.Fprintln(os.Stderr, "s1s:", err)
 		os.Exit(1)
 	}

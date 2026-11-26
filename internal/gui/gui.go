@@ -7,11 +7,22 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"sync/atomic"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/pixambi/sev1situations/internal/settings"
+	"github.com/pixambi/sev1situations/internal/version"
 )
+
+// aboutText is what the About box says: what the application is, and which version of it this is.
+func aboutText() string {
+	v := version.Version
+	if !version.IsRelease() {
+		v += " (a development build)"
+	}
+	return "Role-played severity-1 incident calls for HashiCorp products.\n\nVersion " + v
+}
 
 // Deps are what the services work over. The program supplies them, so this
 // package holds no knowledge of Podman or products.
@@ -32,9 +43,11 @@ type Deps struct {
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
-// application exits. With deps it also registers the services and forwards the
+// application exits. signals ends when the process is asked to stop, by SIGINT or
+// SIGTERM: the run is then ended and the application quits without asking, because
+// nobody is there to answer (R-APP-6). With deps it also registers the services and forwards the
 // engine's events to the frontend. Without them it shows the window alone.
-func Run(assets fs.FS, deps *Deps) error {
+func Run(signals context.Context, assets fs.FS, deps *Deps) error {
 	// Records a runtime trace for the whole run when S1S_TRACE is set (see trace.go).
 	stopTrace, err := startTrace()
 	if err != nil {
@@ -48,6 +61,7 @@ func Run(assets fs.FS, deps *Deps) error {
 
 	var window *application.WebviewWindow
 	var app *application.App
+	var stopping atomic.Bool
 	emit := func(name string, data any) {
 		if app != nil {
 			app.Event.Emit(name, data)
@@ -74,7 +88,7 @@ func Run(assets fs.FS, deps *Deps) error {
 	app = application.New(application.Options{
 		Services:    services,
 		Name:        "Sev1 Situations",
-		Description: "Role-played severity-1 incident calls for HashiCorp products",
+		Description: aboutText(),
 		Assets: application.AssetOptions{
 			Handler:    application.AssetFileServerFS(assets),
 			Middleware: assetMiddleware(),
@@ -86,9 +100,12 @@ func Run(assets fs.FS, deps *Deps) error {
 		},
 		// Quitting during a run asks first, then ends the run so nothing is left
 		// behind (R-APP-6, R-STATE-3). The window closing leads here as well,
-		// because the application ends with its last window.
-		ShouldQuit: func() bool { return conn == nil || !confirmQuit(app, conn) },
-		OnShutdown: func() { conn.endRun() },
+		// because the application ends with its last window. A signal does not
+		// ask: it sets stopping, and the quit goes straight through.
+		ShouldQuit: func() bool { return stopping.Load() || conn == nil || !confirmQuit(app, conn) },
+		// Signals are handled below, so that the run is ended before the quit.
+		DisableDefaultSignalHandler: true,
+		OnShutdown:                  func() { conn.endRun() },
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
@@ -107,13 +124,28 @@ func Run(assets fs.FS, deps *Deps) error {
 		},
 	})
 
+	go func() {
+		select {
+		case <-ctx.Done():
+			return // the application is already ending
+		case <-signals.Done():
+		}
+		stopping.Store(true)
+		conn.endRun()
+		app.Quit()
+	}()
+
+	setupMenu(app, "Sev1 Situations")
+
 	// Adds in-app updates when this is a release build (see updater.go).
 	setupUpdater(app)
 
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "Sev1 Situations",
 		Width:            1000,
-		Height:           618,
+		Height:           700,
+		MinWidth:         800,
+		MinHeight:        560,
 		BackgroundColour: application.NewRGB(6, 7, 15),
 		URL:              "/",
 	})
@@ -132,7 +164,7 @@ func confirmQuit(app *application.App, conn *link) bool {
 		return false
 	}
 	d := app.Dialog.Question().SetTitle("Quit Sev1 Situations?").SetMessage(
-		"A scenario is running. Quitting ends it and removes its containers, and the report is saved.")
+		"A scenario is running. Quitting ends it and removes its containers.")
 	quit := d.AddButton("End scenario and quit")
 	quit.OnClick(func() {
 		go func() {

@@ -86,6 +86,8 @@
     const follow = (e: MediaQueryListEvent) => (systemTheme = e.matches ? "g100" : "white");
     dark.addEventListener("change", follow);
     const stopPrereq = Events.On("system:prereq", (e) => (prereq = e.data as PrereqStatus));
+    // The application menu's Settings item (Cmd+,) is chosen in Go, and tells the page.
+    const stopMenu = Events.On("menu:settings", () => (page = "settings"));
     const stopRun = followRun();
     void check();
     void loadCatalogue();
@@ -94,6 +96,7 @@
       stopRun();
       dark.removeEventListener("change", follow);
       stopPrereq();
+      stopMenu();
     };
   });
 </script>

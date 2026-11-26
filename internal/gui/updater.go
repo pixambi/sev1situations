@@ -17,7 +17,7 @@ import (
 const updateRepository = "pixambi/sev1situations"
 
 // setupUpdater wires in-app updates from GitHub releases and adds
-// "Check for Updates..." to the Help menu.
+// "Check for Updates..." to a Help menu. The menu must be set up first (setupMenu).
 //
 // Builds without a semantic version (task dev, go run) skip it entirely, so a
 // developer build never offers to replace itself with a release.
@@ -47,16 +47,17 @@ func setupUpdater(app *application.App) {
 		return
 	}
 
-	menu := application.DefaultApplicationMenu()
-	if help := menu.FindByRole(application.HelpMenu); help != nil && help.GetSubmenu() != nil {
-		help.GetSubmenu().Add("Check for Updates…").OnClick(func(*application.Context) {
-			// CheckAndInstall blocks until the update is staged, so keep it off the UI thread.
-			go func() {
-				if err := app.Updater.CheckAndInstall(context.Background()); err != nil {
-					app.Logger.Error("update", "error", err)
-				}
-			}()
-		})
+	menu := app.Menu.GetApplicationMenu()
+	if menu == nil {
+		return
 	}
+	menu.AddSubmenu("Help").Add("Check for Updates…").OnClick(func(*application.Context) {
+		// CheckAndInstall blocks until the update is staged, so keep it off the UI thread.
+		go func() {
+			if err := app.Updater.CheckAndInstall(context.Background()); err != nil {
+				app.Logger.Error("update", "error", err)
+			}
+		}()
+	})
 	app.Menu.SetApplicationMenu(menu)
 }

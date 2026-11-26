@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/pixambi/sev1situations/internal/engine"
@@ -119,5 +120,11 @@ func (l *link) endRun() {
 	if l == nil || !l.runActive() {
 		return
 	}
-	_, _ = l.current().End(context.Background())
+	slog.Info("ending the run on shutdown", "run", l.current().Snapshot().RunID)
+	_, err := l.current().End(context.Background())
+	if err != nil {
+		slog.Warn("could not end the run on shutdown", "error", err)
+		return
+	}
+	slog.Info("the run ended on shutdown")
 }

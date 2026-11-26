@@ -15,7 +15,11 @@ const current = vi.hoisted(() => vi.fn());
 const settingsGet = vi.hoisted(() => vi.fn());
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/settingsservice.js", () => ({ Get: settingsGet, SaveField: vi.fn(), SaveInstructor: vi.fn() }));
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({ Current: current, Guide: vi.fn() }));
-vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} }, Browser: { OpenURL: vi.fn() } }));
+const menuHandlers = vi.hoisted(() => [] as Array<() => void>);
+vi.mock("@wailsio/runtime", () => ({
+  Events: { On: (name: string, fn: () => void) => (name === "menu:settings" ? (menuHandlers.push(fn), () => {}) : () => {}) },
+  Browser: { OpenURL: vi.fn() },
+}));
 
 // A controllable stand-in for the system's colour scheme.
 function systemScheme(initiallyDark: boolean) {
@@ -143,5 +147,15 @@ describe("App", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByRole("heading", { name: "Scenarios", level: 2 })).toBeInTheDocument();
+  });
+
+  it("opens Settings when the menu item is chosen", async () => {
+    systemScheme(false);
+    settingsGet.mockResolvedValue({ Instructor: "", Fields: [] });
+    render(App);
+    await screen.findByRole("heading", { name: "Scenarios", level: 2 });
+
+    menuHandlers.forEach((h) => h()); // Go emits menu:settings
+    expect(await screen.findByRole("heading", { name: "Settings", level: 2 })).toBeInTheDocument();
   });
 });
