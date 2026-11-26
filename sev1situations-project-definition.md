@@ -442,7 +442,7 @@ The built-in `scenarios/` tree is embedded with `go:embed`. User scenarios have 
 
 ### 3.6.1 Node and credential names
 
-The first cluster in a topology names its nodes `node-1`, `node-2` and so on. Nodes of later clusters and services are named `<name>-node-1` (for example `dr-secondary-node-1` and `postgres-node-1`), so names are unique across a scenario. Credentials are keyed by the cluster or service name, so `{{ .Creds.primary.rootToken }}` and `{{ .Creds.dr-secondary.rootToken }}` never collide. A node's `Cluster` is the name from the topology, and its Cluster tab section is that name as a title (`primary` becomes "Primary cluster").
+The first cluster in a topology names its nodes `node-1`, `node-2` and so on. Nodes of later clusters and services are named `<name>-node-1` (for example `dr-secondary-node-1` and `postgres-node-1`), so names are unique across a scenario. Credentials are keyed by the cluster or service name, so `{{ .Creds.primary.rootToken }}` and `{{ .Creds.dr_secondary.rootToken }}` never collide. Inside a template a dash in a name is written as an underscore, because Go templates cannot parse a dash (`dr-secondary` is `dr_secondary` and `node-1` is `node_1`). A node's `Cluster` is the name from the topology, and its Cluster tab section is that name as a title (`primary` becomes "Primary cluster").
 
 ### 3.7 Extending the project
 

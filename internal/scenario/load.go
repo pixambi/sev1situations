@@ -18,19 +18,27 @@ type Problem struct {
 	File string
 	// Line is the 1-based line, or 0 if unknown.
 	Line int
+	// Field is the path of the field the problem is about, for example
+	// "steps[1].kind". It is empty for problems about the file as a whole.
+	Field string
 	// Message says what is wrong.
 	Message string
 }
 
 func (p Problem) Error() string {
+	where := p.File
 	if p.Line > 0 {
-		return fmt.Sprintf("%s:%d: %s", p.File, p.Line, p.Message)
+		where = fmt.Sprintf("%s:%d", p.File, p.Line)
 	}
-	return fmt.Sprintf("%s: %s", p.File, p.Message)
+	if p.Field != "" {
+		return fmt.Sprintf("%s: %s: %s", where, p.Field, p.Message)
+	}
+	return fmt.Sprintf("%s: %s", where, p.Message)
 }
 
-// LoadError is returned when a scenario cannot be loaded. It lists every
-// problem found, so a contributor can fix them in one pass.
+// LoadError is returned when a scenario cannot be loaded or does not pass
+// validation. It lists every problem found, so a contributor can fix them in one
+// pass.
 type LoadError struct {
 	// Problems lists what is wrong, in file order.
 	Problems []Problem
