@@ -29,7 +29,7 @@ func main() {
 		os.Exit(code)
 	}
 
-	if err := gui.Run(sev1situations.Frontend); err != nil {
+	if err := gui.Run(sev1situations.Frontend, nil); err != nil {
 		fmt.Fprintln(os.Stderr, "s1s:", err)
 		os.Exit(1)
 	}
