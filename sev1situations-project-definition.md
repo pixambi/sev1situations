@@ -1413,7 +1413,7 @@ Every page carries a feedback link. Docs are part of the definition of done (R-D
 
 - **Build:** `task build` runs `npm ci`, the Vite build and Wails packaging on a Mac, producing `Sev1 Situations.app` for Apple Silicon and Intel (R-APP-7). The shell needs cgo (R-LANG-2), so builds run on macOS and cross-compiling is not used. Version, commit and date are stamped with `-ldflags`.
 - **Task runner:** a `Taskfile.yml` provides `dev`, `build`, `run`, `test`, `lint`, `vuln`, `test:e2e` and `docs`.
-- **Release:** a tag-triggered GitHub Actions workflow on macOS runners builds the bundles, zips them, writes SHA-256 checksums and publishes a GitHub release. Whether GoReleaser or a plain workflow is used is decided in spike W1.
+- **Release:** a tag-triggered GitHub Actions workflow on macOS runners builds the bundles, zips them, writes SHA-256 checksums and publishes a GitHub release. A plain workflow around `task release:package` is used, not GoReleaser (spike W1).
 - **Install:** download the archive from GitHub releases, unzip it and move `Sev1 Situations.app` to Applications. The repository is access-controlled, so the download needs access to it. `go install` is not supported, because the build needs the frontend and cgo.
 - **Signing:** the first releases are **not signed or notarised**. macOS Gatekeeper blocks an unsigned app until the user clears the quarantine attribute (`xattr -cr "Sev1 Situations.app"`), and Getting started documents this. Signing and notarisation are a roadmap item (Section 11).
 - **CLI use:** the CLI subcommands run from inside the bundle (`"Sev1 Situations.app/Contents/MacOS/s1s" scenario validate`). The docs show how to alias it. `s1s prereq` runs the Podman checks without opening the window.
