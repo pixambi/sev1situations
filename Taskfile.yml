@@ -1,7 +1,9 @@
 version: '3'
 
 vars:
-  APP_NAME: "sev1situations"
+  # The executable is s1s; the macOS bundle is named after the product (R-LANG-3).
+  APP_NAME: "s1s"
+  APP_BUNDLE: "Sev1 Situations"
   BIN_DIR: "bin"
   PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
@@ -22,11 +24,7 @@ vars:
 
 includes:
   common: ./build/Taskfile.yml
-  windows: ./build/windows/Taskfile.yml
   darwin: ./build/darwin/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
-  ios: ./build/ios/Taskfile.yml
-  android: ./build/android/Taskfile.yml
 
 tasks:
   build:
@@ -72,7 +70,7 @@ tasks:
       Playwright starts the Go app with -tags server,production on 127.0.0.1:8080.
       Bindings are generated with the server tag first, then the frontend is built.
     cmds:
-      - wails3 generate bindings -f '-tags=server'
+      - wails3 generate bindings -f '-tags=server' -clean=true -ts -i ./cmd/s1s
       - cd frontend && npm run build
       - cd frontend && npx playwright test
 
@@ -92,13 +90,8 @@ tasks:
     cmds:
       - task: package
       - rm -rf bin/release && mkdir -p bin/release
-      - ditto -c -k --sequesterRsrc --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "bin/release/{{.APP_NAME}}-{{.VERSION}}-darwin-{{ARCH}}.zip"
+      - ditto -c -k --sequesterRsrc --keepParent "{{.BIN_DIR}}/{{.APP_BUNDLE}}.app" "bin/release/sev1situations-{{.VERSION}}-darwin-{{ARCH}}.zip"
       - cd bin/release && shasum -a 256 *.zip > SHA256SUMS && cat SHA256SUMS
-
-  install:msix:tools:
-    summary: Installs tools required for Windows MSIX packaging
-    cmds:
-      - task: windows:install:msix:tools
 
   setup:docker:
     summary: Builds Docker image for cross-compilation (~800MB download)

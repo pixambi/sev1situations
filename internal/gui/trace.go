@@ -1,7 +1,7 @@
-package main
+package gui
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"runtime/trace"
 )
@@ -10,9 +10,9 @@ import (
 // to the file named by S1S_TRACE_FILE (default trace.out). The returned function
 // stops the trace and must be called before the process exits.
 // View the result with: go tool trace trace.out
-func startTrace() func() {
+func startTrace() (func(), error) {
 	if os.Getenv("S1S_TRACE") == "" {
-		return func() {}
+		return func() {}, nil
 	}
 
 	path := os.Getenv("S1S_TRACE_FILE")
@@ -22,16 +22,16 @@ func startTrace() func() {
 
 	traceFile, err := os.Create(path)
 	if err != nil {
-		log.Fatalf("%s could not be created: %v", path, err)
+		return nil, fmt.Errorf("create trace file: %w", err)
 	}
 
 	if err := trace.Start(traceFile); err != nil {
 		_ = traceFile.Close()
-		log.Fatalf("trace.Start could not start: %v", err)
+		return nil, fmt.Errorf("start trace: %w", err)
 	}
 
 	return func() {
 		trace.Stop()
 		_ = traceFile.Close()
-	}
+	}, nil
 }

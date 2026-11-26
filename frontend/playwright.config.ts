@@ -9,7 +9,7 @@ export default defineConfig({
     viewport: { width: 800, height: 600 },
   },
   webServer: {
-    command: "go run -tags server,production .",
+    command: "go run -tags server,production ./cmd/s1s",
     cwd: "..",
     url: "http://127.0.0.1:8080",
     reuseExistingServer: !process.env.CI,

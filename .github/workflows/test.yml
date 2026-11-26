@@ -17,7 +17,7 @@ jobs:
       - run: npm ci
         working-directory: frontend
       # Bindings are generated with the server tag so the build needs no GUI libraries.
-      - run: wails3 generate bindings -f '-tags=server'
+      - run: wails3 generate bindings -f '-tags=server' -clean=true -ts -i ./cmd/s1s
       - run: npm run build
         working-directory: frontend
       - run: go test -tags server ./...
