@@ -204,6 +204,18 @@ func (r *Runtime) owned(ctx context.Context, id string) (inspectResult, error) {
 	return in, nil
 }
 
+// Start implements runtime.Runtime.
+func (r *Runtime) Start(ctx context.Context, id string) error {
+	if _, err := r.owned(ctx, id); err != nil {
+		return err
+	}
+	// 204 on success and 304 when it was already running: both are fine.
+	if _, err := r.c.do(ctx, http.MethodPost, "/containers/"+url.PathEscape(id)+"/start", nil, nil, nil); err != nil {
+		return fmt.Errorf("start container %q: %w", id, err)
+	}
+	return nil
+}
+
 // Stop implements runtime.Runtime.
 func (r *Runtime) Stop(ctx context.Context, id string) error {
 	if _, err := r.owned(ctx, id); err != nil {

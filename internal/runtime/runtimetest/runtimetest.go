@@ -99,6 +99,16 @@ func testLifecycle(t *testing.T, rt runtime.Runtime, o Options) {
 		t.Errorf("after Stop, List = %+v, want one stopped container", got)
 	}
 
+	if err := rt.Start(ctx, c.ID); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := rt.Start(ctx, c.ID); err != nil {
+		t.Errorf("starting a running container: %v", err)
+	}
+	if got := list(t, rt, run.ID); len(got) != 1 || got[0].State != runtime.StateRunning {
+		t.Errorf("after Start, List = %+v, want one running container", got)
+	}
+
 	if err := rt.Remove(ctx, c.ID); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
@@ -185,6 +195,7 @@ func testNotFound(t *testing.T, rt runtime.Runtime, _ Options) {
 	ctx := context.Background()
 	const id = "does-not-exist"
 	checks := map[string]error{
+		"Start":  rt.Start(ctx, id),
 		"Stop":   rt.Stop(ctx, id),
 		"Remove": rt.Remove(ctx, id),
 		"Copy":   rt.Copy(ctx, id, runtime.File{Path: "/x", Size: 0, Content: strings.NewReader("")}),

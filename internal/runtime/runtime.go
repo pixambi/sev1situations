@@ -215,6 +215,8 @@ type Runtime interface {
 	// Copy writes a file into the container. It works before and after start.
 	Copy(ctx context.Context, id string, f File) error
 
+	// Start starts a stopped container. Starting a running container is not an error.
+	Start(ctx context.Context, id string) error
 	// Stop stops a running container. Stopping a stopped container is not an error.
 	Stop(ctx context.Context, id string) error
 	// Remove removes a container, stopping it first if needed.

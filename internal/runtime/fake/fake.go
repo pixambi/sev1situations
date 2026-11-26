@@ -30,6 +30,7 @@ const (
 	OpAttach         = "Attach"
 	OpLogs           = "Logs"
 	OpCopy           = "Copy"
+	OpStart          = "Start"
 	OpStop           = "Stop"
 	OpRemove         = "Remove"
 	OpList           = "List"
@@ -349,6 +350,21 @@ func (r *Runtime) Copy(_ context.Context, id string, f runtime.File) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	c.files[f.Path] = StoredFile{Mode: f.Mode, Content: buf.Bytes()}
+	return nil
+}
+
+// Start implements runtime.Runtime.
+func (r *Runtime) Start(_ context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := r.enter(OpStart); err != nil {
+		return err
+	}
+	c, ok := r.containers[id]
+	if !ok {
+		return notFound("container", id)
+	}
+	c.info.State = runtime.StateRunning
 	return nil
 }
 
