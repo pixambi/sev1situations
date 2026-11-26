@@ -94,6 +94,7 @@ type Engine struct {
 	cond *sync.Cond
 	run  *run
 	busy bool
+	subs []*subscriber
 }
 
 // New returns an idle engine.

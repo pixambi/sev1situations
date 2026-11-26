@@ -127,7 +127,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-038 | [x] Engine: roll back to a reset point (default redeploy and replay, with override), end early, teardown, events recorded. | R-SCN-6, R-SCN-10, 4.7 | L | Tests with the fake runtime. |
 | T-039 | Engine: node actions (stop, start, remove, revive) driven by what the product declares, with removed-node placeholders. | R-VIEW-6 | M | Tests. |
 | T-040 | CLI: `s1s scenario list`, `validate`, `new` (scaffold from a template). | R-CONTRIB-6 | M | `new` produces a folder that passes `validate`. |
-| T-041 | Engine event stream (state changes, progress, log lines) that the server can subscribe to. | 3.4 | M | Tests. |
+| T-041 | [x] Engine event stream (state changes, progress, log lines) that the server can subscribe to. | 3.4 | M | Tests. |
 
 **M3 acceptance test:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it. M3 is done when T-039 to T-041 are done as well.
 

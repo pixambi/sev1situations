@@ -87,6 +87,8 @@ const (
 
 // Event is one thing that happened during a run.
 type Event struct {
+	// RunID is the run the event belongs to.
+	RunID string
 	// Seq numbers the run's events from 1.
 	Seq int
 	// Time is when it happened.
@@ -143,16 +145,21 @@ type stepState struct {
 	last     *Outcome
 }
 
-// emit records an event and passes it to the sink. It must be called without
+// emit records an event and passes it to the sink and the subscribers. It must be called without
 // the mutex held, because the sink may call back into the engine.
 func (e *Engine) emit(r *run, kind EventKind, step, message string) {
 	e.mu.Lock()
-	ev := Event{Seq: len(r.events) + 1, Time: e.deps.Clock(), Kind: kind, Step: step, Message: message}
+	ev := Event{RunID: r.id, Seq: len(r.events) + 1, Time: e.deps.Clock(), Kind: kind, Step: step, Message: message}
 	r.events = append(r.events, ev)
 	sink := e.deps.OnEvent
+	subs := append([]*subscriber(nil), e.subs...)
 	e.mu.Unlock()
+
 	if sink != nil {
 		sink(ev)
+	}
+	for _, s := range subs {
+		s.send(ev) // a full subscriber misses the event rather than stalling the run
 	}
 }
 
