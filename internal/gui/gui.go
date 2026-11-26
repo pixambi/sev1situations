@@ -54,12 +54,15 @@ func Run(assets fs.FS, deps *Deps) error {
 	var conn *link
 	if deps != nil {
 		conn = newLink(ctx, deps.Connect, emit)
+		logs := NewLogService(ctx, conn, emit)
+		conn.onRunEnded(logs.CloseAll)
 		services = []application.Service{
 			application.NewService(NewScenarioService(ScenarioDeps{Catalogue: deps.Catalogue, Licensed: deps.Licensed, Versions: deps.Versions, Instructor: deps.Instructor, Context: ctx})),
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
 			application.NewService(NewClusterService(ctx, conn)),
-			application.NewService(NewLogService(ctx, conn, emit)),
+			application.NewService(logs),
+			application.NewService(NewTerminalService(ctx, conn, emit)),
 		}
 	}
 

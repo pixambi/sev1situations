@@ -6,12 +6,14 @@ import * as LogService from "./logservice.js";
 import * as RunService from "./runservice.js";
 import * as ScenarioService from "./scenarioservice.js";
 import * as SystemService from "./systemservice.js";
+import * as TerminalService from "./terminalservice.js";
 export {
     ClusterService,
     LogService,
     RunService,
     ScenarioService,
-    SystemService
+    SystemService,
+    TerminalService
 };
 
 export type {

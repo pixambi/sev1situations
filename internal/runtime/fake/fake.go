@@ -61,6 +61,7 @@ type Runtime struct {
 	images      map[string]bool
 	strict      bool
 	pulls       []string
+	terminals   map[string][]*Terminal
 }
 
 type network struct {
@@ -83,6 +84,7 @@ func New() *Runtime {
 		containers: map[string]*container{},
 		failures:   map[string][]error{},
 		images:     map[string]bool{},
+		terminals:  map[string][]*Terminal{},
 	}
 }
 
@@ -326,7 +328,17 @@ func (r *Runtime) Attach(_ context.Context, id string, _ []string) (runtime.Term
 	if _, err := r.running(id); err != nil {
 		return nil, err
 	}
-	return newTerminal(), nil
+	t := newTerminal()
+	r.terminals[id] = append(r.terminals[id], t)
+	return t, nil
+}
+
+// Terminals returns the terminals attached to a container so far, oldest first, so
+// a test can look at what was resized or close one as the container would.
+func (r *Runtime) Terminals(id string) []*Terminal {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]*Terminal(nil), r.terminals[id]...)
 }
 
 // Logs implements runtime.Runtime.
@@ -421,6 +433,10 @@ func (r *Runtime) remove(id string) error {
 		return notFound("container", id)
 	}
 	c.log.close()
+	for _, t := range r.terminals[id] {
+		_ = t.Close() // a removed container ends the sessions in it
+	}
+	delete(r.terminals, id)
 	delete(r.containers, id)
 	return nil
 }

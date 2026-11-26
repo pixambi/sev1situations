@@ -7,10 +7,19 @@ import { execFileSync } from "node:child_process";
 test.skip(!process.env.REAL_DEPLOY, "set REAL_DEPLOY=1 to run against real Podman");
 test.setTimeout(300_000);
 
+const podman = (...args: string[]) => execFileSync("podman", args, { encoding: "utf8" }).trim();
+const container = () => podman("ps", "--filter", "label=s1s.app", "--format", "{{.Names}}").split("\n")[0];
+
 const leftovers = () =>
   execFileSync("podman", ["ps", "-a", "--filter", "label=s1s.app", "--format", "{{.Names}}"], { encoding: "utf8" }).trim();
 
 test("deploys the Vault sandbox from the page and ends it, leaving nothing behind", async ({ page }) => {
+  // The terminal's WebAssembly must load under the real Content-Security-Policy (R-TERM-6).
+  await page.addInitScript(() => {
+    (window as any).__violations = [] as string[];
+    document.addEventListener("securitypolicyviolation", (e) =>
+      (window as any).__violations.push(`${e.violatedDirective} blocked ${e.blockedURI}`));
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "Start" }).click();
 
@@ -57,6 +66,66 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await page.getByRole("button", { name: "Refresh" }).click();
   await page.getByRole("tab", { name: "Logs" }).click();
   await expect(page.getByText("This log could not be read")).toHaveCount(0);
+
+  // A real terminal in the container. The screen is a canvas, so what is typed is proved by what it
+  // does inside the container, and what comes back by the canvas being painted.
+  await page.getByRole("tab", { name: "Cluster" }).click();
+  await page.getByRole("button", { name: "Open a terminal on node-1" }).click();
+  const screen = page.getByRole("group", { name: "Terminal on node-1" });
+  await expect(screen.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(1500); // the shell starts and prints its prompt
+  await screen.click();
+  await page.keyboard.type("echo typed-in-the-window > /tmp/e2e-marker\n");
+  await expect
+    .poll(() => { try { return podman("exec", container(), "cat", "/tmp/e2e-marker"); } catch { return ""; } }, { timeout: 15_000 })
+    .toBe("typed-in-the-window");
+
+  // Output reaches the screen: the canvas has painted text.
+  await page.keyboard.type("echo painted output from the node\n");
+  await expect
+    .poll(() => screen.locator("canvas").evaluate((c: HTMLCanvasElement) => {
+      const px = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      const bg = [px[0], px[1], px[2]];
+      let n = 0;
+      for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - bg[0]) + Math.abs(px[i + 1] - bg[1]) + Math.abs(px[i + 2] - bg[2]) > 120) n++;
+      return n;
+    }), { timeout: 15_000 })
+    .toBeGreaterThan(200);
+
+  // A resize reaches the shell as a new size.
+  const sizeOf = async (tag: string) => {
+    await page.keyboard.type(`stty size > /tmp/size-${tag}\n`);
+    await expect.poll(() => { try { return podman("exec", container(), "cat", `/tmp/size-${tag}`); } catch { return ""; } }, { timeout: 15_000 }).toMatch(/^\d+ \d+$/);
+    return podman("exec", container(), "cat", `/tmp/size-${tag}`);
+  };
+  const before = await sizeOf("a");
+  await page.setViewportSize({ width: 1300, height: 900 });
+  await page.waitForTimeout(800);
+  await screen.click();
+  const after = await sizeOf("b");
+  expect(after).not.toBe(before);
+
+  // The library's defect (spike W2): random binary kills a terminal. The glue rebuilds it, and the
+  // session carries on: the next command still reaches the shell, and the screen paints again.
+  await page.keyboard.type("head -c 3000000 /dev/urandom\n");
+  await expect(page.getByText("The screen was cleared")).toBeVisible({ timeout: 30_000 }); // the guard fired
+  await page.waitForTimeout(4000);
+  await page.keyboard.type("clear; echo alive-after-binary > /tmp/e2e-alive\n");
+  await expect
+    .poll(() => { try { return podman("exec", container(), "cat", "/tmp/e2e-alive"); } catch { return ""; } }, { timeout: 20_000 })
+    .toBe("alive-after-binary");
+  await page.keyboard.type("echo and painting again\n");
+  await expect
+    .poll(() => screen.locator("canvas").evaluate((c: HTMLCanvasElement) => {
+      const px = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      const bg = [px[0], px[1], px[2]];
+      let n = 0;
+      for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - bg[0]) + Math.abs(px[i + 1] - bg[1]) + Math.abs(px[i + 2] - bg[2]) > 120) n++;
+      return n;
+    }), { timeout: 15_000 })
+    .toBeGreaterThan(50);
+
+  expect(await page.evaluate(() => (window as any).__violations)).toEqual([]);
 
   // Another scenario cannot be started meanwhile.
   await page.getByRole("tab", { name: "Scenarios" }).click();

@@ -7,6 +7,7 @@
   import StepCard from "./StepCard.svelte";
   import ClusterTab from "./ClusterTab.svelte";
   import LogsTab from "./LogsTab.svelte";
+  import TerminalsTab, { type Session } from "./TerminalsTab.svelte";
 
   interface Props {
     snapshot: Snapshot;
@@ -39,6 +40,22 @@
     } finally {
       pending = "";
     }
+  }
+
+  // Terminals belong to the run, so they are dropped when it ends. Go closes the sessions themselves.
+  const TERMINALS = 3;
+  let tab = $state(0);
+  let sessions = $state<Session[]>([]);
+  let shown = $state("");
+  function openTerminal(node: string) {
+    const id = `T${Math.random().toString(36).slice(2, 12)}`;
+    sessions = [...sessions, { id, node }];
+    shown = id;
+    tab = TERMINALS;
+  }
+  function closeTerminal(id: string) {
+    sessions = sessions.filter((s) => s.id !== id);
+    if (shown === id) shown = sessions.at(-1)?.id ?? "";
   }
 
   let confirming: "end" | "rollback" | "" = $state("");
@@ -78,10 +95,11 @@
     </InlineNotification>
     <p>Retry builds the environment again. End scenario removes whatever was created.</p>
   {:else}
-    <Tabs>
+    <Tabs bind:selected={tab}>
       <Tab label="Steps" />
       <Tab label="Cluster" />
       <Tab label="Logs" />
+      <Tab label="Terminals" />
       <svelte:fragment slot="content">
         <TabContent>
             {#if sandbox}
@@ -133,10 +151,13 @@
         </TabContent>
         <TabContent>
           <!-- The tab reads the deployment again whenever the run changes, which covers a node action finishing. -->
-          <ClusterTab version={(snapshot.Events ?? []).length} />
+          <ClusterTab version={(snapshot.Events ?? []).length} onterminal={openTerminal} />
         </TabContent>
         <TabContent>
           <LogsTab nodes={snapshot.Nodes ?? []} />
+        </TabContent>
+        <TabContent>
+          <TerminalsTab {sessions} selected={shown} visible={tab === TERMINALS} onselect={(id) => (shown = id)} onclose={closeTerminal} />
         </TabContent>
       </svelte:fragment>
     </Tabs>

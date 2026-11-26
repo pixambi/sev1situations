@@ -24,7 +24,7 @@ func TestTheRunsEventsReachTheFrontend(t *testing.T) {
 	b, svc := twoStep(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
-	go func() { pumpEvents(ctx, b.eng, b.out.emit); close(done) }()
+	go func() { pumpEvents(ctx, b.eng, b.out.emit, nil); close(done) }()
 	// Wait until the pump is subscribed, or the first events are missed.
 	eventually(t, "the pump to subscribe", func() bool { _, stop := b.eng.Subscribe(1); stop(); return true })
 	time.Sleep(20 * time.Millisecond)
@@ -64,7 +64,7 @@ func TestOnlyProgressEventsAreSentAsProgress(t *testing.T) {
 	b, svc := twoStep(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go pumpEvents(ctx, b.eng, b.out.emit)
+	go pumpEvents(ctx, b.eng, b.out.emit, nil)
 	time.Sleep(20 * time.Millisecond)
 
 	if _, err := svc.Start(form()); err != nil {

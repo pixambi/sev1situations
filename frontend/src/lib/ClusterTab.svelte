@@ -10,8 +10,10 @@
   interface Props {
     /** Changes whenever the run does, which is when the tab reads the deployment again. */
     version: number;
+    /** Called to open a terminal on a node. */
+    onterminal: (node: string) => void;
   }
-  let { version }: Props = $props();
+  let { version, onterminal }: Props = $props();
 
   let cluster = $state<ClusterState | null>(null);
   let error = $state("");
@@ -104,8 +106,11 @@
                 {/each}
               </dl>
             </div>
-            {#if (node.Actions ?? []).length > 0}
-              <div class="actions">
+            <div class="actions">
+              {#if node.State === "running"}
+                <Button size="small" kind="primary" aria-label="Open a terminal on {node.Name}" on:click={() => onterminal(node.Name)}>Terminal</Button>
+              {/if}
+              {#if (node.Actions ?? []).length > 0}
                 {#each node.Actions ?? [] as a (a)}
                   <Button
                     size="small"
@@ -117,8 +122,8 @@
                     {actionLabel(a)}
                   </Button>
                 {/each}
-              </div>
-            {/if}
+              {/if}
+            </div>
             {#if acting.startsWith(node.Name + ":")}<InlineLoading description="Working on {node.Name}" />{/if}
           </Tile>
         </li>

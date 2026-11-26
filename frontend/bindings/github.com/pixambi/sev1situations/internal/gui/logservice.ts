@@ -23,6 +23,13 @@ export function Close(streamID: string): $CancellablePromise<void> {
 }
 
 /**
+ * CloseAll stops every stream. It runs when the run ends.
+ */
+export function CloseAll(): $CancellablePromise<void> {
+    return $Call.ByID(291418671);
+}
+
+/**
  * Open starts following one of a node's logs under the given stream ID.
  */
 export function Open(streamID: string, node: string, stream: string): $CancellablePromise<void> {

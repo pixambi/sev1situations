@@ -40,8 +40,26 @@ type link struct {
 	connect Connector
 	emit    Emitter
 
-	mu   sync.Mutex
-	conn *Connection
+	mu    sync.Mutex
+	conn  *Connection
+	ended []func()
+}
+
+// onRunEnded registers something to do when a run ends, such as closing its terminals.
+func (l *link) onRunEnded(f func()) {
+	l.mu.Lock()
+	l.ended = append(l.ended, f)
+	l.mu.Unlock()
+}
+
+// runEnded runs the registered hooks.
+func (l *link) runEnded() {
+	l.mu.Lock()
+	hooks := append([]func(){}, l.ended...)
+	l.mu.Unlock()
+	for _, f := range hooks {
+		f()
+	}
 }
 
 func newLink(ctx context.Context, connect Connector, emit Emitter) *link {
@@ -85,7 +103,7 @@ func (l *link) ensure() PrereqStatus {
 		return PrereqStatus{Message: fmt.Sprintf("Podman is not ready: %v. Install Podman, then run \"podman machine init\" and \"podman machine start\", and press Retry.", err)}
 	}
 	l.conn = conn
-	go pumpEvents(l.ctx, conn.Engine, l.emit)
+	go pumpEvents(l.ctx, conn.Engine, l.emit, l.runEnded)
 	return PrereqStatus{Ready: true, Notices: conn.Notices}
 }
 

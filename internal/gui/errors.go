@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/pixambi/sev1situations/internal/engine"
 )
@@ -32,4 +33,13 @@ func plain(err error) error {
 		return notice("That cannot be done at this point in the scenario. The page may be out of date, so check the current step.")
 	}
 	return err
+}
+
+// nodeError explains why a node has no container to read or attach to. what is
+// the thing the instructor asked for, such as "log" or "terminal".
+func nodeError(node, what string, err error) error {
+	if errors.Is(err, engine.ErrWrongState) {
+		return notice(fmt.Sprintf("%s has been removed, so it has no %s. Revive it first.", node, what))
+	}
+	return plain(err)
 }

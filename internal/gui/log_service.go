@@ -2,14 +2,12 @@ package gui
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"sync"
 
-	"github.com/pixambi/sev1situations/internal/engine"
 	"github.com/pixambi/sev1situations/internal/runtime"
 )
 
@@ -74,11 +72,8 @@ func (s *LogService) Open(streamID, node, stream string) error {
 		return notice("This build cannot read logs.")
 	}
 	containerID, err := conn.Engine.ContainerOf(node)
-	if errors.Is(err, engine.ErrWrongState) {
-		return notice(fmt.Sprintf("%s has been removed, so it has no log. Revive it first.", node))
-	}
 	if err != nil {
-		return plain(err)
+		return nodeError(node, "log", err)
 	}
 	var def *StreamInfo
 	var file string
@@ -122,6 +117,19 @@ func (s *LogService) Close(streamID string) {
 	cancel := s.streams[streamID]
 	s.mu.Unlock()
 	if cancel != nil {
+		cancel()
+	}
+}
+
+// CloseAll stops every stream. It runs when the run ends.
+func (s *LogService) CloseAll() {
+	s.mu.Lock()
+	all := make([]context.CancelFunc, 0, len(s.streams))
+	for _, cancel := range s.streams {
+		all = append(all, cancel)
+	}
+	s.mu.Unlock()
+	for _, cancel := range all {
 		cancel()
 	}
 }

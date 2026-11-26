@@ -33,7 +33,7 @@ var progressKinds = map[engine.EventKind]bool{
 // Every change is announced with a fresh snapshot, never a delta, so the frontend
 // holds no state of its own (R-UI-5) and a missed event does no harm. A burst of
 // events is answered with one snapshot, taken after the burst.
-func pumpEvents(ctx context.Context, eng *engine.Engine, emit Emitter) {
+func pumpEvents(ctx context.Context, eng *engine.Engine, emit Emitter, onEnded func()) {
 	events, cancel := eng.Subscribe(engine.DefaultSubscriberBuffer)
 	defer cancel()
 
@@ -51,6 +51,9 @@ func pumpEvents(ctx context.Context, eng *engine.Engine, emit Emitter) {
 		for {
 			if progressKinds[ev.Kind] {
 				emit(EventRunProgress, ev)
+			}
+			if ev.Kind == engine.EventRunEnded && onEnded != nil {
+				onEnded()
 			}
 			select {
 			case ev, ok = <-events:

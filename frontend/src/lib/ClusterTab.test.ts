@@ -10,6 +10,8 @@ vi.mock("@wailsio/runtime", () => ({ Clipboard: { SetText: vi.fn() } }));
 
 import ClusterTab from "./ClusterTab.svelte";
 
+const onterminal = vi.fn();
+
 const state = (over: Record<string, unknown> = {}) => ({
   Sections: [
     {
@@ -35,7 +37,7 @@ afterEach(() => {
 
 describe("ClusterTab", () => {
   it("shows the sections, their facts and each node with its state and address", async () => {
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     expect(await screen.findByRole("heading", { name: "Primary cluster" })).toBeInTheDocument();
     expect(screen.getByText("http://127.0.0.1:8200")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "node-1" })).toBeInTheDocument();
@@ -44,8 +46,16 @@ describe("ClusterTab", () => {
     expect(screen.getByText("removed")).toBeInTheDocument();
   });
 
+  it("offers a terminal on a running node only, and opens it for that node", async () => {
+    render(ClusterTab, { version: 0, onterminal });
+    await screen.findByRole("heading", { name: "node-1" });
+    expect(screen.getAllByRole("button", { name: /Open a terminal/ })).toHaveLength(1); // node-2 is removed
+    await userEvent.click(screen.getByRole("button", { name: "Open a terminal on node-1" }));
+    expect(onterminal).toHaveBeenCalledExactlyOnceWith("node-1");
+  });
+
   it("masks the credentials", async () => {
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     await screen.findByRole("heading", { name: "Primary cluster" });
     expect(document.body.textContent).not.toContain("hvs.TopSecret");
     await userEvent.click(screen.getByRole("button", { name: "Show Root token" }));
@@ -53,7 +63,7 @@ describe("ClusterTab", () => {
   });
 
   it("offers each node only the actions it can take now", async () => {
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     await screen.findByRole("heading", { name: "node-1" });
     expect(screen.getByRole("button", { name: /Stop node-1/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Revive node-2/ })).toBeInTheDocument();
@@ -62,7 +72,7 @@ describe("ClusterTab", () => {
   });
 
   it("stops and revives straight away", async () => {
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     await userEvent.click(await screen.findByRole("button", { name: /Stop node-1/ }));
     expect(nodeAction).toHaveBeenCalledWith("node-1", "stop");
     await userEvent.click(screen.getByRole("button", { name: /Revive node-2/ }));
@@ -70,7 +80,7 @@ describe("ClusterTab", () => {
   });
 
   it("asks before removing, and removes only when confirmed", async () => {
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     await userEvent.click(await screen.findByRole("button", { name: /Remove node-1/ }));
 
     const dialog = await screen.findByRole("dialog");
@@ -87,17 +97,17 @@ describe("ClusterTab", () => {
 
   it("says what went wrong when an action fails", async () => {
     nodeAction.mockRejectedValueOnce(new Error("Another action is still running."));
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     await userEvent.click(await screen.findByRole("button", { name: /Stop node-1/ }));
     expect(await screen.findByText(/Another action is still running/)).toBeInTheDocument();
   });
 
   it("reads the deployment again when the run changes, and on Refresh", async () => {
-    const { rerender } = render(ClusterTab, { version: 0 });
+    const { rerender } = render(ClusterTab, { version: 0, onterminal });
     await screen.findByRole("heading", { name: "Primary cluster" });
     expect(get).toHaveBeenCalledTimes(1);
 
-    await rerender({ version: 1 });
+    await rerender({ version: 1, onterminal });
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
 
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
@@ -107,10 +117,10 @@ describe("ClusterTab", () => {
   it("keeps the newest answer when an older read finishes last", async () => {
     let slow!: (v: unknown) => void;
     get.mockReturnValueOnce(new Promise((resolve) => (slow = resolve)));
-    const { rerender } = render(ClusterTab, { version: 0 });
+    const { rerender } = render(ClusterTab, { version: 0, onterminal });
 
     get.mockResolvedValueOnce(state({ Sections: [{ Title: "Newer cluster", Facts: [], Nodes: [] }] }));
-    await rerender({ version: 1 });
+    await rerender({ version: 1, onterminal });
     expect(await screen.findByRole("heading", { name: "Newer cluster" })).toBeInTheDocument();
 
     slow(state({ Sections: [{ Title: "Older cluster", Facts: [], Nodes: [] }] }));
@@ -120,12 +130,12 @@ describe("ClusterTab", () => {
 
   it("explains a failed read with a way to try again, and says when nothing is deployed", async () => {
     get.mockRejectedValueOnce(new Error("The container runtime is not ready."));
-    const { unmount } = render(ClusterTab, { version: 0 });
+    const { unmount } = render(ClusterTab, { version: 0, onterminal });
     expect(await screen.findByText(/container runtime is not ready/)).toBeInTheDocument();
     unmount();
 
     get.mockResolvedValue({ Sections: [] });
-    render(ClusterTab, { version: 0 });
+    render(ClusterTab, { version: 0, onterminal });
     expect(await screen.findByText("There is nothing deployed to show yet.")).toBeInTheDocument();
   });
 });
