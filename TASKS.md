@@ -43,7 +43,7 @@ These affect early tasks. Defaults are shown so work is not blocked.
 |---|---|---|
 | D1 | Default Vault and Boundary versions for scenarios | Newest available from `releases.hashicorp.com` at deploy time, selectable in the Start form. |
 | D2 | Terminal transport | Wails events (R-TERM-2). Fallback: a loopback WebSocket with a per-launch token. Settled in spike W2. |
-| D3 | YAML library | `go.yaml.in/yaml/v4` (pure Go, strict decoding). Confirm in spike S4. |
+| D3 | YAML library | `go.yaml.in/yaml/v4` (pure Go, strict decoding). Confirmed in spike S4. |
 | D4 | Frontend stack | Svelte 5, TypeScript, Vite, `carbon-components-svelte`. No SvelteKit. Confirm Carbon and Svelte 5 in spike W3. |
 | D5 | Where app data lives | `~/Library/Application Support/Sev1Situations/` with `reports/`, `scenarios/`, `cache/binaries/` and `settings.json`. |
 | D6 | Run ID format | Short random hex, for example `a1b2c3`. |
@@ -78,7 +78,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 |---|---|---|---|---|
 | S1 | [x] **Podman REST API on macOS** | Can we reach the `podman machine` socket from Go with `net/http` over a unix socket? Can we create a network and container, exec, copy files, stream logs, and list and remove by label? What is the socket path discovery rule? | M | A small Go program does all of the above against a real machine, and the result lists the exact endpoints used. |
 | S2 | **Binaries on the base image** | Do `vault`, `vault+ent`, `boundary`, `boundary+ent` run on Alpine? **Likely problem:** Vault Enterprise's HSM (PKCS#11) builds are separate (`+ent.hsm`) and link to glibc, so the HSM scenario will probably need a glibc image (R-RUN-10). Does SoftHSM work with them? What tools must the image include? | M | A table of product, edition, and the base image that works, with the exceptions recorded. |
-| S4 | **YAML library** | Which pure-Go YAML library is maintained, strict (unknown fields rejected) and gives line numbers in errors? | S | Library chosen and justified for `DEPENDENCIES.md`. |
+| S4 | [x] **YAML library** | Which pure-Go YAML library is maintained, strict (unknown fields rejected) and gives line numbers in errors? | S | Library chosen and justified for `DEPENDENCIES.md`. |
 | S7 | [x] **Release listing and verification** | How do we list versions and verify `SHA256SUMS` from `releases.hashicorp.com`? What are the file names for `+ent` and `+ent.hsm`? | S | A program lists versions for Vault and Boundary, downloads one, and verifies the checksum. |
 | W1 | **Wails v3 scaffold** | Which template gives Svelte 5 and TypeScript? Does the root `embed.go` layout work with `cmd/s1s`? Does Wails offer single-instance behaviour (R-APP-8)? Can the same executable run CLI subcommands headless? Does `wails3 generate bindings` produce usable types for our service shapes? GoReleaser or a plain workflow for the bundle? | M | A throwaway app opens a window with a Svelte page that calls a Go service and receives an event. Findings recorded for 3.8 and Section 10. |
 | W2 | **In-app terminal** | Does ghostty-web run in the macOS system webview (WKWebView) under a strict CSP? Can Wails events carry interactive terminal throughput (typing, `cat` of a large file, resize)? If not, does a token-guarded loopback WebSocket work? | M | A window shows a working, resizable terminal into a container. Findings recorded for R-TERM-1 to R-TERM-7. |

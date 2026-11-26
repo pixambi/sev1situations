@@ -9,7 +9,7 @@ Status: **Proposed** means chosen on paper and not yet proved. **Accepted** mean
 | Module | Used for | Why the standard library is not enough | Status |
 |---|---|---|---|
 | `github.com/wailsapp/wails/v3` | The native window, services, events and bindings generator (R-APP-2). Imported only by `internal/gui` and `cmd/s1s` (R-LANG-2). | The standard library has no native window or webview. Wails v3.0.0 is stable, uses cgo on macOS and is the chosen shell. Confirm in W1. Its `pkg/updater` provides self-update (checksum verified, GitHub releases provider) and pulls in `golang.org/x/mod` indirectly. | Proposed |
-| `go.yaml.in/yaml/v4` | Parsing scenario files (R-SCN-1). | The standard library has no YAML support. Pure Go, Apache-2.0, strict decoding. Confirm in S4. | Proposed |
+| `go.yaml.in/yaml/v4` | Parsing scenario files (R-SCN-1). | The standard library has no YAML support. Pure Go, Apache-2.0, strict decoding, line numbers on errors and nodes. Confirmed in S4. | Accepted |
 | `github.com/coder/websocket` | **Only if** spike W2 shows Wails events cannot carry terminal throughput (R-TERM-2). | The standard library has no server-side WebSocket. | Conditional |
 
 ## npm packages (frontend, shipped)
