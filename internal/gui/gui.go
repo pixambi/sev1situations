@@ -20,6 +20,8 @@ func Run(assets fs.FS) error {
 	}
 	defer stopTrace()
 
+	var window *application.WebviewWindow
+
 	app := application.New(application.Options{
 		Name:        "Sev1 Situations",
 		Description: "Role-played severity-1 incident calls for HashiCorp products",
@@ -34,12 +36,25 @@ func Run(assets fs.FS) error {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		// Only one instance may run (R-APP-8): start-up cleanup removes every
+		// labelled run, so two instances would destroy each other's work. A
+		// second launch brings the first window forward and exits.
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "com.pixelizedambitions.sev1situations",
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				if window != nil {
+					window.UnMinimise()
+					window.Show()
+					window.Focus()
+				}
+			},
+		},
 	})
 
 	// Adds in-app updates when this is a release build (see updater.go).
 	setupUpdater(app)
 
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "Sev1 Situations",
 		Width:            1000,
 		Height:           618,

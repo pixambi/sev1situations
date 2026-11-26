@@ -191,7 +191,7 @@ tasks:
       - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -i
 
   generate:icons:
-    summary: Generates Windows `.ico` and Mac `.icns` from an image; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).
+    summary: Generates the Mac `.icns` from an image, and `Assets.car` from the `.icon` file.
     run: once
     dir: build
     sources:
@@ -199,9 +199,9 @@ tasks:
       - "appicon.icon"
     generates:
       - "darwin/icons.icns"
-      - "windows/icon.ico"
     cmds:
-      - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico -iconcomposerinput appicon.icon -macassetdir darwin
+      # The CLI always writes a Windows icon too. macOS is the only platform (R-APP-7), so discard it.
+      - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename /dev/null -iconcomposerinput appicon.icon -macassetdir darwin
 
   dev:frontend:
     summary: Runs the frontend in development mode
