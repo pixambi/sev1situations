@@ -16,6 +16,8 @@
   import ScenariosPage from "./lib/ScenariosPage.svelte";
   import StartForm from "./lib/StartForm.svelte";
   import RunPage from "./lib/RunPage.svelte";
+  import ReportsPage from "./lib/ReportsPage.svelte";
+  import ReportViewer from "./lib/ReportViewer.svelte";
   import SettingsPage from "./lib/SettingsPage.svelte";
   import SettingsIcon from "carbon-icons-svelte/lib/Settings.svelte";
   import { Get as GetSettings } from "../bindings/github.com/pixambi/sev1situations/internal/gui/settingsservice.js";
@@ -44,7 +46,8 @@
 
   // The page shown while no run exists is the catalogue or the Start form. A run takes over, and the
   // instructor can still look at the catalogue to see why starting another is blocked.
-  let page = $state<"scenarios" | "start" | "run" | "settings">("scenarios");
+  let page = $state<"scenarios" | "start" | "run" | "settings" | "reports" | "report">("scenarios");
+  let openReport = $state("");
   let chosen = $state("");
   const active = $derived(runActive(run.snapshot));
   $effect(() => {
@@ -52,10 +55,13 @@
     page = active ? "run" : "scenarios";
   });
 
-  // The switcher shows the catalogue or the run. The run is there only while one exists.
-  const shownPage = $derived(page === "run" ? 1 : 0);
+  // The switcher shows the catalogue, the reports and, while one exists, the run.
+  type PageName = "scenarios" | "reports" | "run";
+  const pages = $derived<PageName[]>(active ? ["scenarios", "reports", "run"] : ["scenarios", "reports"]);
+  const labels = { scenarios: "Scenarios", reports: "Reports", run: "Current run" } as const;
+  const shownPage = $derived(Math.max(0, pages.indexOf(page === "report" ? "reports" : page === "start" ? "scenarios" : (page as PageName))));
   function switchPage(index: number) {
-    page = index === 1 ? "run" : "scenarios";
+    page = pages[index] ?? "scenarios";
   }
 
   // The catalogue loads without Podman, so it can be browsed while the machine is down.
@@ -113,12 +119,13 @@
 
 <Content>
   <h1>Sev1 Situations</h1>
-  {#if active && page !== "settings"}
+  {#if page !== "settings"}
     <nav aria-label="Pages" class="pages">
-      <ContentSwitcher selectedIndex={shownPage} on:change={(e) => switchPage(e.detail)}>
-        <Switch text="Scenarios" />
-        <Switch text="Current run" />
-      </ContentSwitcher>
+      {#key pages.length}
+        <ContentSwitcher selectedIndex={shownPage} on:change={(e) => switchPage(e.detail)}>
+          {#each pages as p (p)}<Switch text={labels[p]} />{/each}
+        </ContentSwitcher>
+      {/key}
     </nav>
   {/if}
   <SystemStatus status={prereq} {checking} onretry={check} />
@@ -130,6 +137,15 @@
         void loadCatalogue(); // a saved license changes which scenarios can be started
       }}
     />
+  {:else if page === "reports"}
+    <ReportsPage
+      onopen={(id) => {
+        openReport = id;
+        page = "report";
+      }}
+    />
+  {:else if page === "report"}
+    <ReportViewer id={openReport} onback={() => (page = "reports")} />
   {:else if catalogueError}
     <InlineNotification lowContrast hideCloseButton kind="error" title="The scenarios could not be loaded" subtitle={catalogueError} />
   {:else if catalogue}

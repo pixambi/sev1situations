@@ -23,7 +23,7 @@ const snap = (over: Record<string, unknown> = {}): Snapshot => ({
   Status: "active", RunID: "abc", ScenarioID: "demo", ScenarioName: "Demo scenario", Instructor: "Ada", Trainee: "Grace", Params: {},
   StartedAt: "2026-11-26T09:00:00Z", EndedAt: "0001-01-01T00:00:00Z", Result: "", DeployError: "", ActiveStep: 0,
   Nodes: [], Steps: [], Events: [], ...over,
-}) as Snapshot;
+}) as unknown as Snapshot;
 
 beforeEach(() => {
   svc.Guide.mockResolvedValue({ Briefing: "Tell them Vault is down.", Hints: "Check the peers.", Solution: "Recover.", References: "" });

@@ -14,6 +14,7 @@ import (
 
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
+	"github.com/pixambi/sev1situations/internal/report"
 	"github.com/pixambi/sev1situations/internal/scenario"
 	"github.com/pixambi/sev1situations/internal/settings"
 )
@@ -36,6 +37,9 @@ type Options struct {
 	// Settings is the saved settings, if the caller has opened them already.
 	// Connect opens them itself when it is nil.
 	Settings *settings.Store
+	// Reports is the report store, if the caller has opened it already. Connect
+	// opens it itself when it is nil.
+	Reports *report.Store
 }
 
 // builtinRoot is the folder inside Options.Builtin that holds the scenarios.

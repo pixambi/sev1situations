@@ -3,6 +3,7 @@
 
 import * as ClusterService from "./clusterservice.js";
 import * as LogService from "./logservice.js";
+import * as ReportService from "./reportservice.js";
 import * as RunService from "./runservice.js";
 import * as ScenarioService from "./scenarioservice.js";
 import * as SettingsService from "./settingsservice.js";
@@ -11,6 +12,7 @@ import * as TerminalService from "./terminalservice.js";
 export {
     ClusterService,
     LogService,
+    ReportService,
     RunService,
     ScenarioService,
     SettingsService,
@@ -20,10 +22,12 @@ export {
 
 export type {
     ClusterState,
+    ExportResult,
     FactView,
     NodeCard,
     ParameterView,
     PrereqStatus,
+    ReportList,
     ScenarioDetail,
     ScenarioList,
     ScenarioSummary,

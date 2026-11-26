@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { audit } from "./axe";
 
 // This starts a real Vault sandbox on Podman through the page, then ends it. It needs a running
@@ -58,6 +60,8 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   expect(await page.locator("body").innerText()).not.toMatch(/hvs\.[A-Za-z0-9]/);
   await page.getByRole("button", { name: "Show Root token" }).click();
   await expect(page.getByText(/^hvs\./)).toBeVisible();
+  const rootToken = ((await page.getByText(/^hvs\./).first().textContent()) ?? "").trim();
+  expect(rootToken).toMatch(/^hvs\./);
 
   // A real node action: stop the node and start it again.
   await page.getByRole("button", { name: "Stop node-1" }).click();
@@ -175,4 +179,22 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await page.getByRole("dialog").getByRole("button", { name: "End scenario" }).click();
   await expect(page.getByRole("heading", { name: "Scenarios", level: 2 })).toBeVisible({ timeout: 120_000 });
   expect(leftovers()).toBe("");
+
+  // Ending the run saved a report. It is on the Reports tab, shows in the frame, and holds no credential.
+  await page.getByRole("tab", { name: "Reports" }).click();
+  const row = page.getByRole("row", { name: /Vault Sandbox/ });
+  await expect(row).toBeVisible();
+  await expect(row).toContainText("Grace");
+  await page.getByRole("button", { name: /Open the report for Grace/ }).click();
+  const frame = page.frameLocator('iframe[title="The report"]');
+  await expect(frame.getByRole("heading", { name: "Vault Sandbox", level: 1 })).toBeVisible();
+  await expect(frame.locator(".badge")).toHaveText("Completed");
+  expect(await frame.locator("body").innerText()).not.toContain(rootToken);
+
+  const folder = join(process.env.S1S_DATA_DIR!, "reports");
+  const files = readdirSync(folder).filter((f) => f.endsWith(".json"));
+  expect(files).toHaveLength(1);
+  const saved = readFileSync(join(folder, files[0]), "utf8");
+  expect(saved).not.toContain(rootToken);
+  expect(JSON.parse(saved)).toMatchObject({ version: 1, instructor: "Ada", trainee: "Grace", result: "completed" });
 });

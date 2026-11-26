@@ -181,10 +181,12 @@ export interface Snapshot {
     "RunID": string;
 
     /**
-     * ScenarioID and ScenarioName say which scenario is running.
+     * ScenarioID and ScenarioName say which scenario is running, and Product which
+     * product it is mainly about.
      */
     "ScenarioID": string;
     "ScenarioName": string;
+    "Product": string;
 
     /**
      * Instructor and Trainee are the names entered on the Start step.

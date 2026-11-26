@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	sev1situations "github.com/pixambi/sev1situations"
 	"github.com/pixambi/sev1situations/internal/app"
@@ -48,12 +49,15 @@ func main() {
 		os.Exit(1)
 	}
 	opts.Settings = store
+	opts.Reports = app.OpenReports()
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	deps := &gui.Deps{
 		Licensed:   app.Licensed(store),
 		Versions:   app.Versions(products),
 		Instructor: store.Instructor,
 		Settings:   store,
+		Reports:    opts.Reports,
+		Location:   time.Local,
 		Catalogue:  func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
 		Connect: func(ctx context.Context) (*gui.Connection, error) {
 			conn, err := app.Connect(ctx, opts, log, nil)

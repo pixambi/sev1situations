@@ -13,7 +13,9 @@ vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioserv
 }));
 const current = vi.hoisted(() => vi.fn());
 const settingsGet = vi.hoisted(() => vi.fn());
+const reportList = vi.hoisted(() => vi.fn());
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/settingsservice.js", () => ({ Get: settingsGet, SaveField: vi.fn(), SaveInstructor: vi.fn() }));
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/reportservice.js", () => ({ List: reportList, Delete: vi.fn(), Export: vi.fn(), Page: vi.fn() }));
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({ Current: current, Guide: vi.fn() }));
 const menuHandlers = vi.hoisted(() => [] as Array<() => void>);
 vi.mock("@wailsio/runtime", () => ({
@@ -45,6 +47,7 @@ afterEach(() => {
   prereq.mockReset();
   current.mockReset();
   settingsGet.mockReset();
+  reportList.mockReset();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("theme");
 });
@@ -122,11 +125,25 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Demo scenario" })).toBeInTheDocument();
   });
 
-  it("offers no page switcher when there is no run", async () => {
+  it("offers the scenarios and the reports, and the run only while there is one", async () => {
     systemScheme(false);
     render(App);
     await screen.findByRole("heading", { name: "Scenarios", level: 2 });
+    expect(screen.getByRole("tab", { name: "Scenarios" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Reports" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Current run" })).not.toBeInTheDocument();
+  });
+
+  it("opens the reports and comes back to the scenarios", async () => {
+    systemScheme(false);
+    reportList.mockResolvedValue({ Reports: [], Problems: [] });
+    render(App);
+    await screen.findByRole("heading", { name: "Scenarios", level: 2 });
+
+    await userEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    expect(await screen.findByRole("heading", { name: "Reports", level: 2 })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Scenarios" }));
+    expect(await screen.findByRole("heading", { name: "Scenarios", level: 2 })).toBeInTheDocument();
   });
 
   it("uses the theme chosen in Settings over the system's, and follows the system when none is chosen", async () => {

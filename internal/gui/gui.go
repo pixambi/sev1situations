@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"io/fs"
 	"sync/atomic"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
+	"github.com/pixambi/sev1situations/internal/report"
+	htmlreport "github.com/pixambi/sev1situations/internal/report/html"
 	"github.com/pixambi/sev1situations/internal/settings"
 	"github.com/pixambi/sev1situations/internal/version"
 )
@@ -40,6 +43,10 @@ type Deps struct {
 	Instructor func() string
 	// Settings is the saved settings store.
 	Settings *settings.Store
+	// Reports keeps the reports.
+	Reports *report.Store
+	// Location is the time zone reports are shown in. Nil means UTC.
+	Location *time.Location
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
@@ -70,7 +77,11 @@ func Run(signals context.Context, assets fs.FS, deps *Deps) error {
 
 	var services []application.Service
 	var conn *link
+	var reportPages application.Middleware
+	reports := htmlreport.Renderer{}
 	if deps != nil {
+		reports.Location = deps.Location
+		reportPages = reportRoute(deps.Reports, reports)
 		conn = newLink(ctx, deps.Connect, emit)
 		logs := NewLogService(ctx, conn, emit)
 		conn.onRunEnded(logs.CloseAll)
@@ -79,6 +90,7 @@ func Run(signals context.Context, assets fs.FS, deps *Deps) error {
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
 			application.NewService(NewSettingsService(deps.Settings)),
+			application.NewService(NewReportService(deps.Reports, reports, nativeSave(func() *application.App { return app }))),
 			application.NewService(NewClusterService(ctx, conn)),
 			application.NewService(logs),
 			application.NewService(NewTerminalService(ctx, conn, emit)),
@@ -91,7 +103,7 @@ func Run(signals context.Context, assets fs.FS, deps *Deps) error {
 		Description: aboutText(),
 		Assets: application.AssetOptions{
 			Handler:    application.AssetFileServerFS(assets),
-			Middleware: assetMiddleware(),
+			Middleware: chain(assetMiddleware(), reportPages),
 		},
 		// Only used when built with -tags server, which the Playwright e2e tests do.
 		Server: application.ServerOptions{

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	goruntime "runtime"
 
@@ -82,7 +83,10 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 	if err := products.RegisterPrimitives(prims); err != nil {
 		return nil, fmt.Errorf("register product primitives: %w", err)
 	}
-	reports := report.NewStore(filepath.Join(dataDir, "reports"))
+	reports := opts.Reports
+	if reports == nil {
+		reports = OpenReports()
+	}
 	eng := engine.New(engine.Deps{
 		Registry: prims, Deployer: deployer, Runtime: rt, Reports: reports, OnEvent: onEvent,
 	})
@@ -104,6 +108,17 @@ func (r StartupReport) Notices() []string {
 // LoadCatalogue loads the built-in and the user's scenarios. The error lists the
 // scenarios that did not load, and the registry still holds the others.
 func LoadCatalogue(opts Options) (*scenario.Registry, error) { return loadCatalogue(opts) }
+
+// OpenReports returns the store that keeps the reports (R-STATE-4). The window opens
+// it first so the Reports tab works before Podman is reachable, and Connect then uses
+// the same one.
+func OpenReports() *report.Store {
+	dir, err := DataDir()
+	if err != nil {
+		dir = os.TempDir() // the data folder cannot be found, which Connect reports; this keeps the store usable
+	}
+	return report.NewStore(filepath.Join(dir, "reports"))
+}
 
 // OpenSettings opens the saved settings with the registered products' fields. The
 // window opens it first so the catalogue can show which scenarios need a license
