@@ -86,6 +86,10 @@ type Spec struct {
 	// Changes says the primitive changes the environment. The documentation
 	// must also say whether running it again is safe.
 	Changes bool
+	// Nested names Map arguments that hold another call, written
+	// {primitive: name, args: {...}}. The registry checks the nested call's
+	// name and arguments when a scenario loads, as it does for a step's own.
+	Nested []string
 }
 
 // Node is one container of the deployment, as a primitive sees it.
@@ -108,6 +112,14 @@ type Env struct {
 	Run runtime.Run
 	// Nodes are the deployment's nodes by name.
 	Nodes map[string]Node
+	// ReadFile reads a file from the scenario's folder, for example a template
+	// or a fixture. The engine sets it. It may not leave the folder (R-SCN-15).
+	ReadFile func(rel string) ([]byte, error)
+	// Render fills in a template with the run's values. The engine sets it.
+	Render func(src string) (string, error)
+	// Call runs another primitive in the same environment. The registry sets
+	// it, so wait.until can run the check it retries.
+	Call func(ctx context.Context, name string, args map[string]any) (Result, error)
 	// Redactor removes the run's known credentials from what a primitive
 	// reports. The registry applies it, so a primitive need not. It may be nil.
 	Redactor *Redactor

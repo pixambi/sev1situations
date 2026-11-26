@@ -19,6 +19,9 @@ const maxTimeout = 30 * time.Minute
 // present, with the Go type its declaration says.
 type Args map[string]any
 
+// Has reports whether an argument has a value, either given or defaulted.
+func (a Args) Has(name string) bool { _, ok := a[name]; return ok }
+
 // String returns a String or Duration-as-text argument.
 func (a Args) String(name string) string { s, _ := a[name].(string); return s }
 

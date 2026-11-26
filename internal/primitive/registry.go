@@ -154,6 +154,10 @@ func (r *Registry) Has(name string) bool {
 	return ok
 }
 
+// Get returns a registered primitive. The contract tests use it to run the same
+// checks over every primitive.
+func (r *Registry) Get(name string) (Primitive, bool) { return r.get(name) }
+
 // Names returns every registered name in order.
 func (r *Registry) Names() []string {
 	r.mu.RLock()
@@ -183,7 +187,33 @@ func (r *Registry) CheckArgs(name string, args map[string]any) []string {
 	if !ok {
 		return nil
 	}
-	_, problems := p.Spec().check(args, true)
+	spec := p.Spec()
+	_, problems := spec.check(args, true)
+	return append(problems, r.checkNested(spec, args)...)
+}
+
+// checkNested checks the calls held in a primitive's Nested arguments.
+func (r *Registry) checkNested(spec Spec, args map[string]any) []string {
+	var problems []string
+	for _, arg := range spec.Nested {
+		call, ok := args[arg].(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := call["primitive"].(string)
+		switch {
+		case name == "":
+			problems = append(problems, fmt.Sprintf("argument %q: the nested call needs a primitive", arg))
+		case strings.Contains(name, "{{"):
+		case !r.Has(name):
+			problems = append(problems, fmt.Sprintf("argument %q: %q is not a known primitive", arg, name))
+		default:
+			inner, _ := call["args"].(map[string]any)
+			for _, msg := range r.CheckArgs(name, inner) {
+				problems = append(problems, fmt.Sprintf("argument %q, %s: %s", arg, name, msg))
+			}
+		}
+	}
 	return problems
 }
 
@@ -217,6 +247,10 @@ func (r *Registry) Run(ctx context.Context, name string, env Env, raw map[string
 	args, problems := p.Spec().check(raw, false)
 	if len(problems) > 0 {
 		return Result{}, &ArgsError{Primitive: name, Problems: problems}
+	}
+
+	env.Call = func(c context.Context, n string, a map[string]any) (Result, error) {
+		return r.Run(c, n, env, a)
 	}
 
 	limit := args.Duration(TimeoutArg)
