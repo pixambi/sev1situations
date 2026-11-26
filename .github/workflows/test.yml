@@ -2,7 +2,7 @@ name: Tests
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -23,7 +23,7 @@ jobs:
       - run: go test -tags server ./...
       - run: npm test
         working-directory: frontend
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
         working-directory: frontend
       - run: npx playwright test
         working-directory: frontend
