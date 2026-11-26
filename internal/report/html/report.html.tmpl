@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>{{.Scenario.Name}}: {{.Trainee}}</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#161616;--muted:#525252;--line:#c6c6c6;--card:#f4f4f4;--ok:#0e6027;--bad:#a2191f;--warn:#684e00}
+@media (prefers-color-scheme:dark){:root{--bg:#161616;--fg:#f4f4f4;--muted:#a8a8a8;--line:#525252;--card:#262626;--ok:#42be65;--bad:#ff8389;--warn:#f1c21b}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1rem;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:56rem;margin:0 auto}
+h1{font-size:1.75rem;font-weight:400;margin:0 0 .25rem}
+h2{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem;padding-top:1rem;border-top:1px solid var(--line)}
+h3{font-size:1rem;font-weight:600;margin:0}
+.sub{color:var(--muted);margin:0 0 1rem}
+.badge{display:inline-block;padding:.125rem .625rem;border:1px solid currentColor;border-radius:1rem;font-size:.875rem;font-weight:600}
+.badge.completed{color:var(--ok)}.badge.early{color:var(--warn)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:.375rem 1.5rem;margin:0}
+dt{color:var(--muted)}dd{margin:0}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;vertical-align:top;padding:.5rem .5rem;border-bottom:1px solid var(--line)}
+th{font-size:.875rem;color:var(--muted);font-weight:600}
+.step{background:var(--card);border:1px solid var(--line);padding:1rem;margin:0 0 1rem;break-inside:avoid}
+.step header{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem}
+.notes{white-space:pre-wrap;overflow-wrap:anywhere;margin:.25rem 0 0}
+.pass{color:var(--ok)}.fail{color:var(--bad)}.error{color:var(--warn)}
+.muted{color:var(--muted)}
+ol.events{list-style:none;padding:0;margin:0}
+ol.events li{padding:.375rem 0;border-bottom:1px solid var(--line)}
+footer{margin-top:3rem;color:var(--muted);font-size:.875rem}
+@media print{body{padding:0}.step{border-color:#999}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>{{.Scenario.Name}}</h1>
+<p class="sub">{{if .Scenario.Product}}{{title .Scenario.Product}} scenario. {{end}}Report for {{.Trainee}}.</p>
+<p><span class="badge {{if eq .Result "completed"}}completed{{else}}early{{end}}">{{title .Result}}</span></p>
+</header>
+
+<h2>The session</h2>
+<dl>
+<dt>Instructor</dt><dd>{{.Instructor}}</dd>
+<dt>Trainee</dt><dd>{{.Trainee}}</dd>
+<dt>Started</dt><dd>{{when .StartedAt}}</dd>
+<dt>Ended</dt><dd>{{if .Ended}}{{when .EndedAt}}{{else}}not recorded{{end}}</dd>
+<dt>Duration</dt><dd>{{if .Ended}}{{span .Duration}}{{else}}not recorded{{end}}</dd>
+{{range .Params}}<dt>{{.Name}}</dt><dd>{{fmtParam .Value}}</dd>
+{{end}}</dl>
+
+<h2>Steps</h2>
+{{if .Steps}}{{range $i, $s := .Steps}}<section class="step" aria-labelledby="step-{{$i}}">
+<header>
+<h3 id="step-{{$i}}">{{inc $i}}. {{$s.Title}}</h3>
+<span>{{stateName $s.State}}</span>
+</header>
+{{if eq $s.State "locked"}}<p class="muted" style="margin:0">This step was not reached.</p>{{else}}<dl>
+<dt>Started</dt><dd>{{when $s.StartedAt}}</dd>
+<dt>Finished</dt><dd>{{if $s.EndedAt.IsZero}}{{if $s.StartedAt.IsZero}}not reached{{else}}not finished{{end}}{{else}}{{when $s.EndedAt}}{{end}}</dd>
+<dt>Time spent</dt><dd>{{spanMs $s.DurationMs}}{{if gt $s.Attempts 1}}, over {{$s.Attempts}} attempts{{end}}</dd>
+<dt>Rating</dt><dd>{{stars $s.Rating}}</dd>
+{{if $s.Outcome}}<dt>Last check</dt><dd class="{{$s.Outcome.Status}}">{{outcome $s.Outcome.Status}}: {{$s.Outcome.Message}}</dd>
+{{end}}</dl>{{end}}
+{{if $s.Notes}}<p class="muted" style="margin:.75rem 0 0">Instructor's notes</p>
+<p class="notes">{{$s.Notes}}</p>{{end}}
+</section>
+{{end}}{{else}}<p class="muted">This scenario has no steps. It was an open sandbox.</p>{{end}}
+
+<h2>What happened</h2>
+{{if .Events}}<ol class="events">
+{{range .Events}}<li><strong>{{when .At}}</strong> {{.Message}}</li>
+{{end}}</ol>{{else}}<p class="muted">Nothing out of the ordinary was recorded.</p>{{end}}
+
+<footer>Report {{.ID}}. Created by Sev1 Situations. This page loads nothing from the network.</footer>
+</main>
+</body>
+</html>

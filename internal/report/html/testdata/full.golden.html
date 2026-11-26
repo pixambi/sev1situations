@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>Lost Quorum: Grace Hopper</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#161616;--muted:#525252;--line:#c6c6c6;--card:#f4f4f4;--ok:#0e6027;--bad:#a2191f;--warn:#684e00}
+@media (prefers-color-scheme:dark){:root{--bg:#161616;--fg:#f4f4f4;--muted:#a8a8a8;--line:#525252;--card:#262626;--ok:#42be65;--bad:#ff8389;--warn:#f1c21b}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1rem;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:56rem;margin:0 auto}
+h1{font-size:1.75rem;font-weight:400;margin:0 0 .25rem}
+h2{font-size:1.25rem;font-weight:600;margin:2rem 0 .75rem;padding-top:1rem;border-top:1px solid var(--line)}
+h3{font-size:1rem;font-weight:600;margin:0}
+.sub{color:var(--muted);margin:0 0 1rem}
+.badge{display:inline-block;padding:.125rem .625rem;border:1px solid currentColor;border-radius:1rem;font-size:.875rem;font-weight:600}
+.badge.completed{color:var(--ok)}.badge.early{color:var(--warn)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:.375rem 1.5rem;margin:0}
+dt{color:var(--muted)}dd{margin:0}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;vertical-align:top;padding:.5rem .5rem;border-bottom:1px solid var(--line)}
+th{font-size:.875rem;color:var(--muted);font-weight:600}
+.step{background:var(--card);border:1px solid var(--line);padding:1rem;margin:0 0 1rem;break-inside:avoid}
+.step header{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem}
+.notes{white-space:pre-wrap;overflow-wrap:anywhere;margin:.25rem 0 0}
+.pass{color:var(--ok)}.fail{color:var(--bad)}.error{color:var(--warn)}
+.muted{color:var(--muted)}
+ol.events{list-style:none;padding:0;margin:0}
+ol.events li{padding:.375rem 0;border-bottom:1px solid var(--line)}
+footer{margin-top:3rem;color:var(--muted);font-size:.875rem}
+@media print{body{padding:0}.step{border-color:#999}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Lost Quorum</h1>
+<p class="sub">Vault scenario. Report for Grace Hopper.</p>
+<p><span class="badge early">Ended early</span></p>
+</header>
+
+<h2>The session</h2>
+<dl>
+<dt>Instructor</dt><dd>Ada Lovelace</dd>
+<dt>Trainee</dt><dd>Grace Hopper</dd>
+<dt>Started</dt><dd>26 Nov 2026, 09:15:30 UTC</dd>
+<dt>Ended</dt><dd>26 Nov 2026, 09:57:37 UTC</dd>
+<dt>Duration</dt><dd>42m 7s</dd>
+<dt>edition</dt><dd>community</dd>
+<dt>nodes</dt><dd>3</dd>
+<dt>version</dt><dd>2.2.2</dd>
+</dl>
+
+<h2>Steps</h2>
+<section class="step" aria-labelledby="step-0">
+<header>
+<h3 id="step-0">1. Cause the outage</h3>
+<span>Complete</span>
+</header>
+<dl>
+<dt>Started</dt><dd>26 Nov 2026, 09:16:30 UTC</dd>
+<dt>Finished</dt><dd>26 Nov 2026, 09:24:30 UTC</dd>
+<dt>Time spent</dt><dd>10m, over 2 attempts</dd>
+<dt>Rating</dt><dd>★★★★☆  4 of 5</dd>
+<dt>Last check</dt><dd class="pass">Passed: the breakage is in place</dd>
+</dl>
+<p class="muted" style="margin:.75rem 0 0">Instructor's notes</p>
+<p class="notes">Looked at the logs first.
+Then found the peers file.</p>
+</section>
+<section class="step" aria-labelledby="step-1">
+<header>
+<h3 id="step-1">2. Recover quorum</h3>
+<span>In progress</span>
+</header>
+<dl>
+<dt>Started</dt><dd>26 Nov 2026, 09:24:30 UTC</dd>
+<dt>Finished</dt><dd>not finished</dd>
+<dt>Time spent</dt><dd>32m 18s</dd>
+<dt>Rating</dt><dd>Not rated</dd>
+<dt>Last check</dt><dd class="fail">Not as expected: no leader elected yet</dd>
+</dl>
+
+</section>
+<section class="step" aria-labelledby="step-2">
+<header>
+<h3 id="step-2">3. Verify the cluster</h3>
+<span>Not reached</span>
+</header>
+<p class="muted" style="margin:0">This step was not reached.</p>
+
+</section>
+
+
+<h2>What happened</h2>
+<ol class="events">
+<li><strong>26 Nov 2026, 09:35:30 UTC</strong> rolled back to break</li>
+<li><strong>26 Nov 2026, 09:57:37 UTC</strong> the run ended: ended early</li>
+</ol>
+
+<footer>Report 20261126-091530-abc123. Created by Sev1 Situations. This page loads nothing from the network.</footer>
+</main>
+</body>
+</html>

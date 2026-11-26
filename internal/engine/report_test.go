@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	htmlreport "github.com/pixambi/sev1situations/internal/report/html"
 )
 
 func TestAnEarlyEndSavesAReportWithEveryStepAsItWasLeft(t *testing.T) {
@@ -212,5 +214,30 @@ func TestAnEngineWithNoReportSaverStillEnds(t *testing.T) {
 	}
 	if len(r.reports.all()) != 0 {
 		t.Error("a report was saved with no saver")
+	}
+}
+
+func TestTheRenderedReportHoldsNoCredentialEitherWayItIsReached(t *testing.T) {
+	r := newRig(t, testScenario)
+	r.start()
+	r.ok(r.e.Apply(ctx))
+	r.ok(r.e.Continue(ctx))
+	r.ok(r.e.Verify(ctx)) // fails, and echoes the token in its output
+	r.ok(r.e.SetNotes("fix", "root token was "+rootToken+"; trainee pasted it into chat"))
+	if _, err := r.e.End(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := htmlreport.Renderer{}.Render(r.reports.all()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{rootToken, "TestRootTokenValue"} {
+		if strings.Contains(string(page), secret) {
+			t.Errorf("the HTML report contains %q", secret)
+		}
+	}
+	if !strings.Contains(string(page), "root token was") {
+		t.Error("the rest of the note is missing from the page")
 	}
 }

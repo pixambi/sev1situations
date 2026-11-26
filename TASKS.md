@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M5 are done, and so are all the spikes. M6, reports, is in progress (T-080 and T-081 done). Done tasks are marked `[x]`.
+**Status:** M0 to M5 are done, and so are all the spikes. M6, reports, is in progress (T-080 to T-082 done). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -185,7 +185,7 @@ Use the Carbon MCP for every component (R-UI-3). Needs spikes W1 to W4.
 |---|---|---|---|---|
 | T-080 | [x] `report` data model with a versioned schema, JSON store under the app data directory, atomic writes. | R-REPORT-1, R-STATE-6 | M | Round-trip tests. |
 | T-081 | [x] Engine writes a report at the end of every run, including early end, with events and per-step data. | R-REPORT-5, R-REPORT-6 | M | Tests. |
-| T-082 | `report/html` renderer: self-contained, no external requests, credentials never present. | R-REPORT-2, R-REPORT-4 | M | Golden file tests. A test scans output for known secrets. |
+| T-082 | [x] `report/html` renderer: self-contained, no external requests, credentials never present. | R-REPORT-2, R-REPORT-4 | M | Golden file tests. A test scans output for known secrets. |
 | T-083 | Reports tab: list, open, delete with confirmation, export HTML and raw data. | R-REPORT-7, R-REPORT-8 | M | Tests. |
 
 ---

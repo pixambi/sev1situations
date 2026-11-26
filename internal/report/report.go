@@ -126,3 +126,15 @@ func (r *Report) Duration() time.Duration { return r.EndedAt.Sub(r.StartedAt) }
 func NewID(runID string, started time.Time) string {
 	return started.UTC().Format("20060102-150405") + "-" + runID
 }
+
+// Renderer turns a report into a document in some format. It is a pure function of
+// the report: it reads nothing else and changes nothing, so a new format, such as
+// PDF, needs no change to the data or to the code that produces it (R-REPORT-3).
+type Renderer interface {
+	// Render returns the report as a document.
+	Render(r *Report) ([]byte, error)
+	// Extension is the file extension of the format, with its dot, for example ".html".
+	Extension() string
+	// ContentType is the format's media type.
+	ContentType() string
+}
