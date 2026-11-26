@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2) and M2 are done, and M3 is done. Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2) and M2 are done, and M3 is nearly done (T-039 to T-041 remain). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -129,7 +129,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-040 | CLI: `s1s scenario list`, `validate`, `new` (scaffold from a template). | R-CONTRIB-6 | M | `new` produces a folder that passes `validate`. |
 | T-041 | Engine event stream (state changes, progress, log lines) that the server can subscribe to. | 3.4 | M | Tests. |
 
-**M3 done:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it.
+**M3 acceptance test:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it. M3 is done when T-039 to T-041 are done as well.
 
 **M3 done when (original wording):** a fixture scenario with a start step, a breakage and a verification runs start to finish against the fake runtime in a Go test, including roll back and end early.
 
