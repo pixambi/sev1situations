@@ -328,3 +328,27 @@ func TestDefaultProducts(t *testing.T) {
 		t.Errorf("scenario validate with the real registry: %d %q %s", code, o, e)
 	}
 }
+
+// TestTheBuiltInScenariosAreValid loads the scenarios shipped in the repository's
+// scenarios folder, from disk so the test needs no built frontend, against the real
+// product registry. A scenario that does not pass validate must not ship (R-SCN-13).
+func TestTheBuiltInScenariosAreValid(t *testing.T) {
+	products, err := DefaultProducts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts := Options{Builtin: os.DirFS("../.."), UserDir: t.TempDir(), Products: products}
+
+	code, out, errOut := cli(t, opts, "scenario", "validate")
+	if code != exitOK || errOut != "" {
+		t.Fatalf("validate: exit %d\nstdout: %s\nstderr: %s", code, out, errOut)
+	}
+	if !strings.Contains(out, "(vault-sandbox)") {
+		t.Errorf("validate output = %q, want the Vault sandbox among the built-in scenarios", out)
+	}
+
+	code, out, _ = cli(t, opts, "scenario", "list")
+	if code != exitOK || !strings.Contains(out, "vault-sandbox") || !strings.Contains(out, "built-in") {
+		t.Errorf("list = %q", out)
+	}
+}

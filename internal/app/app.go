@@ -27,6 +27,7 @@ Commands:
   version    print the version, commit and build date
   prereq     check that Podman is installed and its machine is running
   scenario   list, validate and create scenarios (try: s1s scenario help)
+  sandbox    deploy the Vault sandbox on Podman and tear it down again (temporary)
   help       print this message
 `
 
@@ -57,6 +58,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys syste
 		return prereq(ctx, stdout, stderr, sys)
 	case "scenario":
 		return scenarioCommand(args[1:], stdout, stderr, opts)
+	case "sandbox":
+		return sandboxCommand(ctx, args[1:], stdout, stderr, opts)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return exitOK

@@ -25,6 +25,9 @@ type Options struct {
 	// UserDir is the user's scenario directory. Empty means the default
 	// (UserScenarioDir).
 	UserDir string
+	// Stdin is read by commands that wait for the user, such as sandbox. If nil
+	// they wait for the context to end instead.
+	Stdin io.Reader
 	// Products are the registered products. Their names are the products a
 	// scenario may use, and their primitives are available to it (R-SCOPE-3).
 	// If nil, a temporary built-in list of names is used.
