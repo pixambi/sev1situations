@@ -26,6 +26,7 @@ With no command, s1s opens the application window.
 Commands:
   version    print the version, commit and build date
   prereq     check that Podman is installed and its machine is running
+  scenario   list, validate and create scenarios (try: s1s scenario help)
   help       print this message
 `
 
@@ -38,11 +39,11 @@ type system interface {
 }
 
 // Run executes the subcommand named by args[0] and returns the process exit code.
-func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	return run(ctx, args, stdout, stderr, hostSystem{})
+func Run(ctx context.Context, args []string, stdout, stderr io.Writer, opts Options) int {
+	return run(ctx, args, stdout, stderr, hostSystem{}, opts)
 }
 
-func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys system) int {
+func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys system, opts Options) int {
 	if len(args) == 0 {
 		fmt.Fprint(stderr, usage)
 		return exitUsage
@@ -54,6 +55,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys syste
 		return exitOK
 	case "prereq":
 		return prereq(ctx, stdout, stderr, sys)
+	case "scenario":
+		return scenarioCommand(args[1:], stdout, stderr, opts)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return exitOK

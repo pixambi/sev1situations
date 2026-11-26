@@ -19,7 +19,7 @@ func main() {
 	defer stop()
 
 	if len(os.Args) > 1 {
-		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr)
+		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, app.Options{Builtin: sev1situations.Scenarios})
 		stop()
 		os.Exit(code)
 	}
