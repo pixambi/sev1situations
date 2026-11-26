@@ -1,5 +1,8 @@
 name: Tests
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 jobs:
   test:
     runs-on: macos-latest
@@ -18,9 +21,19 @@ jobs:
         working-directory: frontend
       # Bindings are generated with the server tag so the build needs no GUI libraries.
       - run: wails3 generate bindings -f '-tags=server' -clean=true -ts -i ./cmd/s1s
+      - name: Bindings are committed and current
+        run: git diff --exit-code frontend/bindings
       - run: npm run build
         working-directory: frontend
+      - run: go vet ./...
       - run: go test -tags server ./...
+      # R-LANG-2: everything under internal/ except the Wails shell is pure Go.
+      - name: Core builds without cgo
+        run: CGO_ENABLED=0 go build $(go list ./internal/... | grep -v /internal/gui)
+      - run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+      - run: npm run check
+        working-directory: frontend
       - run: npm test
         working-directory: frontend
       - run: npx playwright install chromium

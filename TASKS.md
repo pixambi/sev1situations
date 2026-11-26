@@ -60,8 +60,8 @@ These affect early tasks. Defaults are shown so work is not blocked.
 | T-001 | [x] Initialise the Go module `github.com/pixambi/sev1situations`, `go.mod` at the current stable Go, `.gitignore`, no LICENSE. | R-LANG-1, R-LANG-6, R-APP-1 | S | `go build ./...` passes on an empty tree. |
 | T-002 | [x] Create the directory layout from 3.2 (without `frontend/` yet) with a doc comment (`doc.go`) in every package. | 3.2, R-QUAL-6 | S | `go vet ./...` clean. Every package has a doc comment. |
 | T-003 | [x] `cmd/s1s/main.go` and `internal/app`: subcommands `version` and `prereq` using the standard library only (no CLI framework unless justified). | R-APP-1, R-APP-5, R-DEP-1 | M | `s1s version` prints version, commit and date stamped by ldflags. `s1s prereq` reports Podman and Podman machine state. |
-| T-004 | `Taskfile.yml`: `build`, `run`, `test`, `lint`, `vuln`, `test:e2e`, `docs`. (`dev` arrives with the shell in M5.) | 10 | S | Each task runs, or fails clearly if its target does not exist yet. |
-| T-005 | `golangci-lint` config, small and documented. | R-LANG-4 | S | `task lint` passes. |
+| T-004 | [x] `Taskfile.yml`: `build`, `run`, `test`, `lint`, `vuln`, `test:e2e`, `docs`. (`dev` arrives with the shell in M5.) | 10 | S | Each task runs, or fails clearly if its target does not exist yet. |
+| T-005 | [x] `golangci-lint` config, small and documented. | R-LANG-4 | S | `task lint` passes. |
 | T-006 | CI workflow on a macOS runner: vet, test, lint, `govulncheck`, and `CGO_ENABLED=0` build of the core packages. Dependabot config for Go modules, npm and actions. | 10, R-LANG-2 | M | CI is green on `main`. |
 | T-007 | [x] `DEPENDENCIES.md` with the rule for justifying each module and npm package. | R-DEP-1 | S | File exists. |
 | T-008 | [x] `README.md` (what it is, install, first run) and a `CONTRIBUTING.md` stub that points at the definition. | R-CONTRIB-5 | S | Both exist and match the definition. |
