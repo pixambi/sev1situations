@@ -2,11 +2,11 @@
 
 Short, throwaway investigations that prove or replace the riskiest assumptions before the build depends on them (TASKS.md, M1). Each spike gets one file here, named `<id>-<slug>.md`. This folder is not published (it is outside `docs/`).
 
-No spike has been started.
+Spikes with a result are linked in the table.
 
 | ID | Spike | Status |
 |---|---|---|
-| S1 | Podman REST API on macOS | Not started |
+| S1 | Podman REST API on macOS | Done: go ([result](S1-podman-api.md)) |
 | S2 | Binaries on the base image | Not started |
 | S4 | YAML library | Not started |
 | S7 | Release listing and verification | Not started |
