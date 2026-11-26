@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060, T-061 and T-063, T-064 and T-065 done, T-062 has one manual check left). Done tasks are marked `[x]`.
+**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060, T-061 and T-063 to T-066 done, T-062 has one manual check left). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -166,7 +166,7 @@ Use the Carbon MCP for every component (R-UI-3). Needs spikes W1 to W4.
 | T-063 | [x] Scenarios page: grouped catalogue, filters, license-needed state, blocked-while-running notice. | 6.1, 6.6 | M | Vitest component tests. |
 | T-064 | [x] Start step form generated from the scenario's parameters, with names and validation. | R-SCN-11 | M | Tests for each parameter type. |
 | T-065 | [x] Run page: header, Steps tab, progress indicator, guidance (collapsible), action and verify buttons, red and green status, Continue, notes, rating. | 6.2, 4.2 | L | Tests for each step state. |
-| T-066 | Live updates over events: deployment progress, step state, status. | 3.4 | M | Test with a fake engine stream. |
+| T-066 | [x] Live updates over events: deployment progress, step state, status. | 3.4 | M | Test with a fake engine stream. |
 | T-067 | Confirmation modals, error notifications, empty and error states. | 6.3, 6.6 | M | Tests. |
 | T-068 | Cluster tab: sections, node cards, masked credentials with copy, node actions. | R-VIEW-1, R-VIEW-5, R-VIEW-6 | L | Tests. |
 | T-069 | Logs tab: node and stream selectors, live batched stream, pause and scroll lock, filter by text, regular expression and level with highlighted matches. | R-VIEW-3 | L | Tests, including the line cap. |
