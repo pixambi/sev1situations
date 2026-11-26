@@ -292,3 +292,46 @@ func TestDuplicateNames(t *testing.T) {
 		t.Error("starting a second container with the same name succeeded, want an error")
 	}
 }
+
+func TestEnsureImagePullsOnlyWhenMissing(t *testing.T) {
+	f := fake.New()
+	f.AddImage("alpine:3")
+	ctx := context.Background()
+
+	var lines []string
+	if err := f.EnsureImage(ctx, "alpine:3", func(l string) { lines = append(lines, l) }); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Pulled()) != 0 || len(lines) != 0 {
+		t.Errorf("a local image was pulled: pulled=%v progress=%v", f.Pulled(), lines)
+	}
+
+	if err := f.EnsureImage(ctx, "postgres:16", func(l string) { lines = append(lines, l) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.EnsureImage(ctx, "postgres:16", nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.Pulled(); len(got) != 1 || got[0] != "postgres:16" {
+		t.Errorf("Pulled = %v, want postgres:16 exactly once (the second call is cached)", got)
+	}
+	if len(lines) != 1 {
+		t.Errorf("progress = %v, want one line from the one pull", lines)
+	}
+}
+
+func TestRequireImagesFailsForAMissingImage(t *testing.T) {
+	f := fake.New()
+	f.RequireImages()
+	opts := runtime.ContainerOptions{Run: testRun, Name: "a", Image: "alpine:3"}
+
+	if _, err := f.StartContainer(context.Background(), opts); !errors.Is(err, runtime.ErrNotFound) {
+		t.Fatalf("StartContainer without the image = %v, want ErrNotFound", err)
+	}
+	if err := f.EnsureImage(context.Background(), "alpine:3", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.StartContainer(context.Background(), opts); err != nil {
+		t.Errorf("StartContainer after EnsureImage = %v", err)
+	}
+}

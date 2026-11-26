@@ -10,7 +10,7 @@
 // with these changes that building it showed to be needed: Copy takes a File so
 // the mode and size are known (a binary must be executable, and archives need
 // the size up front); Attach returns a Terminal that can be resized; ExecOptions
-// can detach, which is how a product process is started; and Ping and Runs
+// can detach, which is how a product process is started; EnsureImage pulls on demand; and Ping and Runs
 // exist for the start-up checks and leftover cleanup (R-STATE-3).
 package runtime
 
@@ -97,7 +97,7 @@ type ContainerOptions struct {
 	Run Run
 	// Name is a short name. The runtime builds the full name from the run ID.
 	Name string
-	// Image is the image reference. It is not pulled if it is already local.
+	// Image is the image reference. It must be local: call EnsureImage first.
 	Image string
 	// Command overrides the image's command.
 	Command []string
@@ -193,6 +193,13 @@ type Runtime interface {
 	// Ping reports whether the runtime can be reached. It returns an error
 	// matching ErrUnavailable when it cannot.
 	Ping(ctx context.Context) error
+
+	// EnsureImage makes an image available locally. It pulls only when the image
+	// is missing, so a scenario deploys without a network once its images are
+	// cached (R-RUN-9). progress, which may be nil, receives the runtime's
+	// status lines while it pulls. There is deliberately no way to delete an
+	// image (R-STATE-5).
+	EnsureImage(ctx context.Context, ref string, progress func(line string)) error
 
 	// CreateNetwork creates a labelled network.
 	CreateNetwork(ctx context.Context, o NetworkOptions) (Network, error)

@@ -328,6 +328,17 @@ func TestLeftoversFoundAndRemovedByAFreshRuntime(t *testing.T) {
 	}
 }
 
+func TestEnsureImageFailsClearlyForAnUnknownImage(t *testing.T) {
+	rt := newTestRuntime(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	err := rt.EnsureImage(ctx, "docker.io/library/s1s-no-such-image:nope", nil)
+	if err == nil {
+		t.Fatal("EnsureImage of an unknown image succeeded")
+	}
+	t.Logf("error for an unknown image: %v", err)
+}
+
 func TestUnavailableWithBadSocket(t *testing.T) {
 	rt := NewWithSocket("/var/empty/no-such.sock")
 	if err := rt.Ping(context.Background()); !errors.Is(err, runtime.ErrUnavailable) {

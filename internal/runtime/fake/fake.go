@@ -23,6 +23,7 @@ import (
 // Operation names accepted by FailNext.
 const (
 	OpPing           = "Ping"
+	OpEnsureImage    = "EnsureImage"
 	OpCreateNetwork  = "CreateNetwork"
 	OpStartContainer = "StartContainer"
 	OpExec           = "Exec"
@@ -56,6 +57,9 @@ type Runtime struct {
 	execFn      ExecFunc
 	failures    map[string][]error
 	unavailable error
+	images      map[string]bool
+	strict      bool
+	pulls       []string
 }
 
 type network struct {
@@ -77,7 +81,52 @@ func New() *Runtime {
 		networks:   map[string]*network{},
 		containers: map[string]*container{},
 		failures:   map[string][]error{},
+		images:     map[string]bool{},
 	}
+}
+
+// AddImage marks an image as already present locally.
+func (r *Runtime) AddImage(ref string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.images[ref] = true
+}
+
+// RequireImages makes StartContainer fail for an image that is not local, as
+// Podman does. By default the fake accepts any image.
+func (r *Runtime) RequireImages() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.strict = true
+}
+
+// Pulled returns the images EnsureImage had to pull, in order.
+func (r *Runtime) Pulled() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.pulls...)
+}
+
+// EnsureImage implements runtime.Runtime. An image that is not local is
+// "pulled": it is recorded in Pulled and becomes local.
+func (r *Runtime) EnsureImage(_ context.Context, ref string, progress func(string)) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := r.enter(OpEnsureImage); err != nil {
+		return err
+	}
+	if ref == "" {
+		return errors.New("ensure image: reference is required")
+	}
+	if r.images[ref] {
+		return nil
+	}
+	if progress != nil {
+		progress("Pulling " + ref)
+	}
+	r.images[ref] = true
+	r.pulls = append(r.pulls, ref)
+	return nil
 }
 
 // SetExec sets the function that answers Exec. Pass nil to restore the default.
@@ -183,6 +232,9 @@ func (r *Runtime) StartContainer(_ context.Context, o runtime.ContainerOptions) 
 	}
 	if o.Run.ID == "" || o.Name == "" || o.Image == "" {
 		return runtime.Container{}, errors.New("start container: run ID, name and image are required")
+	}
+	if r.strict && !r.images[o.Image] {
+		return runtime.Container{}, fmt.Errorf("start container: image %q is not local: %w", o.Image, runtime.ErrNotFound)
 	}
 	name := fullName(o.Run.ID, o.Name)
 	for _, c := range r.containers {

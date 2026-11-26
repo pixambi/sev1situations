@@ -34,6 +34,7 @@ func Run(t *testing.T, newRuntime func(t *testing.T) runtime.Runtime, o Options)
 		fn   func(t *testing.T, rt runtime.Runtime, o Options)
 	}{
 		{"Ping succeeds", testPing},
+		{"EnsureImage accepts a local image and never needs a network for it", testEnsureImage},
 		{"container lifecycle", testLifecycle},
 		{"a container joins a network", testNetwork},
 		{"exec on a running container", testExec},
@@ -55,6 +56,19 @@ func Run(t *testing.T, newRuntime func(t *testing.T) runtime.Runtime, o Options)
 func testPing(t *testing.T, rt runtime.Runtime, _ Options) {
 	if err := rt.Ping(context.Background()); err != nil {
 		t.Fatalf("Ping: %v", err)
+	}
+}
+
+func testEnsureImage(t *testing.T, rt runtime.Runtime, o Options) {
+	var lines int
+	if err := rt.EnsureImage(context.Background(), o.Image, func(string) { lines++ }); err != nil {
+		t.Fatalf("EnsureImage(%s): %v", o.Image, err)
+	}
+	if err := rt.EnsureImage(context.Background(), o.Image, nil); err != nil {
+		t.Errorf("EnsureImage a second time: %v", err)
+	}
+	if err := rt.EnsureImage(context.Background(), "", nil); err == nil {
+		t.Error("EnsureImage with no reference succeeded, want an error")
 	}
 }
 

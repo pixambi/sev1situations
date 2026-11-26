@@ -370,3 +370,71 @@ func TestRemoveRunSelectsByLabelAndKeepsGoing(t *testing.T) {
 		t.Error("RemoveRun with no run ID succeeded, want an error")
 	}
 }
+
+func TestEnsureImageSkipsThePullWhenLocal(t *testing.T) {
+	var mu sync.Mutex
+	var pulls int
+	rt := newServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/exists"):
+			w.WriteHeader(204)
+		case strings.HasSuffix(r.URL.Path, "/images/pull"):
+			mu.Lock()
+			pulls++
+			mu.Unlock()
+		}
+	}))
+	if err := rt.EnsureImage(context.Background(), "docker.io/library/alpine:3", nil); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if pulls != 0 {
+		t.Errorf("a local image was pulled %d time(s), want none (R-RUN-9)", pulls)
+	}
+}
+
+func TestEnsureImagePullsWhenMissingAndReportsProgress(t *testing.T) {
+	var ref string
+	rt := newServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/exists"):
+			writeJSON(w, 404, map[string]any{"message": "image not known", "response": 404})
+		case strings.HasSuffix(r.URL.Path, "/images/pull"):
+			ref = r.URL.Query().Get("reference")
+			_, _ = io.WriteString(w, `{"stream":"Trying to pull docker.io/library/postgres:16..."}`+"\n")
+			_, _ = io.WriteString(w, `{"stream":"Copying blob sha256:abc"}`+"\n\n")
+			_, _ = io.WriteString(w, `{"images":["deadbeef"],"id":"deadbeef"}`+"\n")
+		}
+	}))
+
+	var lines []string
+	if err := rt.EnsureImage(context.Background(), "docker.io/library/postgres:16", func(l string) { lines = append(lines, l) }); err != nil {
+		t.Fatal(err)
+	}
+	if ref != "docker.io/library/postgres:16" {
+		t.Errorf("pulled %q", ref)
+	}
+	want := "Trying to pull docker.io/library/postgres:16...|Copying blob sha256:abc"
+	if strings.Join(lines, "|") != want {
+		t.Errorf("progress = %q, want %q", strings.Join(lines, "|"), want)
+	}
+}
+
+func TestEnsureImageReportsAFailureInsideTheStream(t *testing.T) {
+	rt := newServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/exists") {
+			writeJSON(w, 404, map[string]any{"message": "image not known", "response": 404})
+			return
+		}
+		_, _ = io.WriteString(w, `{"stream":"Trying to pull..."}`+"\n")
+		_, _ = io.WriteString(w, `{"error":"requested access to the resource is denied"}`+"\n")
+	}))
+	err := rt.EnsureImage(context.Background(), "docker.io/library/nope:1", nil)
+	if err == nil || !strings.Contains(err.Error(), "requested access to the resource is denied") {
+		t.Errorf("EnsureImage = %v, want the pull error", err)
+	}
+	if err := rt.EnsureImage(context.Background(), "", nil); err == nil {
+		t.Error("EnsureImage with no reference succeeded")
+	}
+}

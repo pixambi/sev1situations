@@ -83,7 +83,7 @@ tasks:
     summary: Runs the tests that need a running Podman machine
     desc: Needs `podman machine start` and a local alpine:3 image. CI does not run these.
     cmds:
-      - go test -tags integration -race -count=1 ./internal/runtime/...
+      - go test -tags integration -race -count=1 ./internal/...
 
   test:frontend:
     summary: Runs the frontend unit tests

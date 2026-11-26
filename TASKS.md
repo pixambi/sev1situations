@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 in progress. Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2) and M2 are done. Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -103,10 +103,12 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-017 | [x] Host port allocator (high range, checks the port is free). | 7 | S | Unit tests. |
 | T-018 | [x] `release` package: list versions for a product, including `+ent` and `+ent.hsm`. | R-RUN-7, S7 | M | Tests with recorded responses. |
 | T-019 | [x] `release`: download, verify the SHA-256 against `SHA256SUMS` (no signature check, decision D7), unzip, cache by product, edition and version. Cache lives in the app data directory. | R-RUN-6, R-RUN-8, R-RUN-9 | L | Tests with a local fake server. A failed checksum aborts and nothing is cached. Second use needs no network. |
-| T-020 | Start-up checks and leftover cleanup in `app`: Podman present, machine running, remove labelled leftovers and report them. | F-10, F-11, R-STATE-3 | M | Tested with the fake runtime. |
-| T-021 | Image handling: pull on demand with progress, no deletion of images. | R-RUN-9, R-STATE-5 | S | Manual check, unit test for the policy. |
+| T-020 | [x] Start-up checks and leftover cleanup in `app`: Podman present, machine running, remove labelled leftovers and report them. | F-10, F-11, R-STATE-3 | M | Tested with the fake runtime. |
+| T-021 | [x] Image handling: pull on demand with progress, no deletion of images. | R-RUN-9, R-STATE-5 | S | Manual check, unit test for the policy. |
 
-**M2 done when:** a small test program can deploy a labelled container, exec in it, copy a cached verified binary into it, and tear everything down, all through the `Runtime` interface.
+**M2 done:** the deploy flow test (`internal/app/deploy_flow_test.go`) passes against the fake runtime and, with `task test:integration`, against real Podman.
+
+**M2 done when (original wording):** a small test program can deploy a labelled container, exec in it, copy a cached verified binary into it, and tear everything down, all through the `Runtime` interface.
 
 ---
 
