@@ -15,8 +15,9 @@ type Snapshot struct {
 	Status Status
 	// RunID identifies the run.
 	RunID string
-	// ScenarioID and ScenarioName say which scenario is running.
-	ScenarioID, ScenarioName string
+	// ScenarioID and ScenarioName say which scenario is running, and Product which
+	// product it is mainly about.
+	ScenarioID, ScenarioName, Product string
 	// Instructor and Trainee are the names entered on the Start step.
 	Instructor, Trainee string
 	// Params are the chosen parameter values.
@@ -83,7 +84,7 @@ func (e *Engine) snapshotLocked(r *run) Snapshot {
 	idle := !e.busy
 
 	s := Snapshot{
-		Status: r.status, RunID: r.id, ScenarioID: r.sc.ID, ScenarioName: r.sc.Name,
+		Status: r.status, RunID: r.id, ScenarioID: r.sc.ID, ScenarioName: r.sc.Name, Product: r.sc.Product,
 		Instructor: r.instructor, Trainee: r.trainee, Params: maps.Clone(r.params),
 		StartedAt: r.startedAt, EndedAt: end, Result: r.result, DeployError: r.deployErr, ActiveStep: -1,
 		Events: slices.Clone(r.events),

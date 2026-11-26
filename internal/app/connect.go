@@ -13,6 +13,7 @@ import (
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
+	"github.com/pixambi/sev1situations/internal/report"
 	"github.com/pixambi/sev1situations/internal/runtime"
 	"github.com/pixambi/sev1situations/internal/runtime/podman"
 	"github.com/pixambi/sev1situations/internal/scenario"
@@ -30,6 +31,8 @@ type Connection struct {
 	Settings *settings.Store
 	// Products are the registered products.
 	Products *product.Registry
+	// Reports keeps the report of every run (R-REPORT-6).
+	Reports *report.Store
 	// Runtime is the container runtime.
 	Runtime runtime.Runtime
 	// Startup says what start-up cleanup found and removed.
@@ -62,7 +65,7 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 	if err != nil {
 		return nil, err
 	}
-	report, err := Startup(ctx, rt, log)
+	startup, err := Startup(ctx, rt, log)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +82,11 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 	if err := products.RegisterPrimitives(prims); err != nil {
 		return nil, fmt.Errorf("register product primitives: %w", err)
 	}
+	reports := report.NewStore(filepath.Join(dataDir, "reports"))
 	eng := engine.New(engine.Deps{
-		Registry: prims, Deployer: deployer, Runtime: rt, OnEvent: onEvent,
+		Registry: prims, Deployer: deployer, Runtime: rt, Reports: reports, OnEvent: onEvent,
 	})
-	return &Connection{Engine: eng, Deployer: deployer, Settings: store, Products: products, Runtime: rt, Startup: report}, nil
+	return &Connection{Engine: eng, Deployer: deployer, Settings: store, Products: products, Reports: reports, Runtime: rt, Startup: startup}, nil
 }
 
 // Notices describes what start-up cleanup did, as sentences for the instructor.

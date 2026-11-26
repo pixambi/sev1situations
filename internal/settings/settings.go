@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+
+	"github.com/pixambi/sev1situations/internal/atomicfile"
 )
 
 const (
@@ -261,25 +263,9 @@ func (s *Store) save() error {
 		return fmt.Errorf("encode settings: %w", err)
 	}
 
-	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".settings-*")
-	if err != nil {
-		return fmt.Errorf("save settings: %w", err)
-	}
-	defer func() { _ = os.Remove(tmp.Name()) }()
-
-	// CreateTemp already uses 0600, but say so, because it is a requirement (R-SET-3).
-	if err := tmp.Chmod(filePerm); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("save settings: %w", err)
-	}
-	if _, err := tmp.Write(b); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("save settings: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("save settings: %w", err)
-	}
-	if err := os.Rename(tmp.Name(), s.path); err != nil {
+	// CreateTemp inside Write makes the file private, and Write sets the permissions
+	// explicitly, because they are a requirement (R-SET-3).
+	if err := atomicfile.Write(s.path, b, filePerm); err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}
 	return nil

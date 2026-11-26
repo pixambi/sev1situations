@@ -164,7 +164,7 @@ func confirmQuit(app *application.App, conn *link) bool {
 		return false
 	}
 	d := app.Dialog.Question().SetTitle("Quit Sev1 Situations?").SetMessage(
-		"A scenario is running. Quitting ends it and removes its containers.")
+		"A scenario is running. Quitting ends it, removes its containers and saves its report.")
 	quit := d.AddButton("End scenario and quit")
 	quit.OnClick(func() {
 		go func() {

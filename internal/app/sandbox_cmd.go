@@ -16,6 +16,7 @@ import (
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
+	"github.com/pixambi/sev1situations/internal/report"
 	"github.com/pixambi/sev1situations/internal/scenario"
 )
 
@@ -111,6 +112,7 @@ func runSandbox(ctx context.Context, stdout, stderr io.Writer, opts Options, cho
 		return fmt.Errorf("teardown: %w", err)
 	}
 	fmt.Fprintf(stdout, "Run %s ended: %s. Everything it created was removed.\n", final.RunID, final.Result)
+	fmt.Fprintf(stdout, "Its report was saved as %s.\n", report.NewID(final.RunID, final.StartedAt))
 	return nil
 }
 

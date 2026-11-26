@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pixambi/sev1situations/internal/primitive"
+	"github.com/pixambi/sev1situations/internal/report"
 	"github.com/pixambi/sev1situations/internal/runtime"
 	"github.com/pixambi/sev1situations/internal/runtime/fake"
 	"github.com/pixambi/sev1situations/internal/scenario"
@@ -292,6 +293,31 @@ type rig struct {
 	clock  *fakeClock
 	mu     sync.Mutex
 	events []Event
+	// reports collects what the engine saves when a run ends.
+	reports *memReports
+}
+
+// memReports is a ReportSaver that remembers what it was given.
+type memReports struct {
+	mu    sync.Mutex
+	saved []*report.Report
+	fail  error
+}
+
+func (m *memReports) Save(r *report.Report) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.fail != nil {
+		return m.fail
+	}
+	m.saved = append(m.saved, r)
+	return nil
+}
+
+func (m *memReports) all() []*report.Report {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]*report.Report(nil), m.saved...)
 }
 
 // fakeClock advances only when a test says so, so timing is exact.
@@ -315,12 +341,14 @@ func newRig(t *testing.T, scenarioYAML string) *rig {
 	clock := &fakeClock{t: time.Date(2026, 11, 26, 9, 0, 0, 0, time.UTC)}
 	r := &rig{t: t, rt: rt, world: w, rec: rec, clock: clock, sc: loadScenario(t, scenarioYAML)}
 	r.dep = &fakeDeployer{rt: rt, world: w}
+	r.reports = &memReports{}
 
 	nextID := 0
 	r.e = New(Deps{
 		Registry: registerStubs(t, w, rec),
 		Deployer: r.dep,
 		Runtime:  rt,
+		Reports:  r.reports,
 		Clock:    clock.Now,
 		NewRunID: func() string { nextID++; return fmt.Sprintf("run%d", nextID) },
 		OnEvent:  func(ev Event) { r.mu.Lock(); r.events = append(r.events, ev); r.mu.Unlock() },

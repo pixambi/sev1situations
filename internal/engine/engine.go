@@ -68,6 +68,8 @@ type Deps struct {
 	Deployer Deployer
 	// Runtime removes a run's objects on teardown.
 	Runtime runtime.Runtime
+	// Reports, if set, receives the report of every run when it ends (R-REPORT-6).
+	Reports ReportSaver
 	// OnEvent, if set, receives every event as it happens. It must not block.
 	OnEvent func(Event)
 	// Clock returns the current time. It defaults to time.Now.

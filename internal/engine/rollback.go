@@ -208,10 +208,13 @@ func (e *Engine) End(ctx context.Context) (Snapshot, error) {
 	e.cond.Broadcast()
 	e.mu.Unlock()
 
+	// The report is written whether or not teardown went cleanly: a run that left
+	// containers behind is the one an instructor most needs a record of.
+	saveErr := e.saveReport(snap, r.redactor)
 	if err != nil {
-		return snap, fmt.Errorf("end: teardown: %w", err)
+		err = fmt.Errorf("end: teardown: %w", err)
 	}
-	return snap, nil
+	return snap, errors.Join(err, saveErr)
 }
 
 // removeObjects removes everything the run created. It uses its own time limit,
