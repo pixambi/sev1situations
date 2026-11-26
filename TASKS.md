@@ -121,7 +121,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-032 | [x] Validation: Scenario Standard fields, step IDs unique, referenced files exist, parameter types known, primitives exist, templates parse. | R-SCN-13, 4.5 | L | Table tests for every error. |
 | T-033 | [x] Registry: embedded `scenarios/` tree via `go:embed`, user directory loading, duplicate ID handling. | R-SCN-3, R-SCN-16 | M | Adding a folder needs no Go change (test with a fixture scenario). |
 | T-034 | [x] `primitive` package: interface, registry, result and error semantics, redaction of secrets in messages and evidence, argument validation at load. | 4.5, R-QUAL-3 | L | Contract tests. |
-| T-035 | Templating for arguments (`.Params`, `.Nodes`, `.Creds`, earlier outputs) with validation of unknown values. | 4.5 | M | Tests. |
+| T-035 | [x] Templating for arguments (`.Params`, `.Nodes`, `.Creds`, earlier outputs) with validation of unknown values. | 4.5 | M | Tests. |
 | T-036 | Generic primitives: `container.*`, `file.*`, `http.request`, `wait.until`, `assert.*`. | 4.5 | L | Each has tests against the fake runtime. |
 | T-037 | `engine`: the single run, deploy, step state machine (4.6), no-skip rule, per-step timing, notes and rating, goroutines owned by the run with one cancelable context. | R-SCN-8, R-SCN-9, 4.6 | L | State machine tests for every transition and failure row in 4.6. |
 | T-038 | Engine: roll back to a reset point (default redeploy and replay, with override), end early, teardown, events recorded. | R-SCN-6, R-SCN-10, 4.7 | L | Tests with the fake runtime. |

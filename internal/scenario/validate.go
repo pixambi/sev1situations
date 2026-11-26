@@ -8,7 +8,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"text/template"
 )
 
 // PrimitiveSet says which primitives exist. The primitive registry satisfies it.
@@ -51,7 +50,7 @@ const maxMinutes = 480
 // without steps is an open-ended sandbox (R-SCN-17) and is not required to
 // describe a failure.
 func (s *Scenario) Validate(opts Options) error {
-	v := &validator{s: s, opts: opts, file: s.Dir + "/" + FileName}
+	v := &validator{s: s, opts: opts, file: s.Dir + "/" + FileName, names: s.TemplateNames()}
 	v.metadata()
 	v.parameters()
 	v.topology()
@@ -68,6 +67,7 @@ type validator struct {
 	s        *Scenario
 	opts     Options
 	file     string
+	names    Names
 	problems []Problem
 }
 
@@ -347,14 +347,14 @@ func (v *validator) calls(field string, calls []Call) {
 	}
 }
 
-// templates checks that every string argument that uses {{ }} is valid
-// template syntax. Whether the values it reads exist is checked separately.
+// templates checks every string argument that uses {{ }}: the syntax must
+// parse and every value it reads must exist in this scenario.
 func (v *validator) templates(field string, value any) {
 	switch x := value.(type) {
 	case string:
 		if strings.Contains(x, "{{") {
-			if _, err := template.New("arg").Parse(x); err != nil {
-				v.add(field, "has a template error: %s%s", strings.TrimPrefix(err.Error(), "template: arg:1: "), dashHint(x))
+			for _, msg := range CheckTemplate(x, v.names) {
+				v.add(field, "%s", msg)
 			}
 		}
 	case map[string]any:
