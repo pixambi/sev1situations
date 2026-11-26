@@ -7,7 +7,7 @@ Spikes with a result are linked in the table.
 | ID | Spike | Status |
 |---|---|---|
 | S1 | Podman REST API on macOS | Done: go ([result](S1-podman-api.md)) |
-| S2 | Binaries on the base image | Not started |
+| S2 | Binaries on the base image | Done: go with changes ([result](S2-base-images.md)) |
 | S4 | YAML library | Done: go ([result](S4-yaml-library.md)) |
 | S7 | Release listing and verification | Done: go ([result](S7-release-listing.md)) |
 | W1 | Wails v3 scaffold | Not started |
