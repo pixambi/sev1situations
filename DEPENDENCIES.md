@@ -20,7 +20,7 @@ Status: **Proposed** means chosen on paper and not yet proved. **Accepted** mean
 | `@wailsio/runtime` | Calling Go services and receiving events from the frontend. | Required by Wails to reach the backend. | Proposed |
 | `carbon-components-svelte` | Carbon components, layout and tokens (R-UI-2). | Provides the Carbon Design System for Svelte. Svelte 5 support confirmed in W3. | Accepted |
 | `carbon-icons-svelte` | Carbon iconography (R-UI-2). | Provides the Carbon icon set for Svelte. | Proposed |
-| `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | IBM Plex fonts served from the app (W3 found Carbon loads them from IBM's CDN). | The platform has no IBM Plex, and the app must not need the network (R-LANG-3). SIL OFL. | Proposed |
+| `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | IBM Plex fonts served from the app (W3 found Carbon loads them from IBM's CDN). | The platform has no IBM Plex, and the app must not need the network (R-LANG-3). SIL OFL. | Accepted |
 | `ghostty-web` | The in-app terminal (R-TERM-1). | A terminal emulator cannot be built from platform APIs. Fallback: `@xterm/xterm`. Confirmed in W2: it runs in the macOS webview under a strict CSP. Pin exactly 0.4.0 and guard against its grapheme-pool trap (spike W2). | Accepted |
 
 ## npm packages (build and test only)

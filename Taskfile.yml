@@ -91,6 +91,13 @@ tasks:
     cmds:
       - npm test
 
+  check:offline:
+    summary: Fails if the built frontend would load anything from the network
+    dir: frontend
+    cmds:
+      - npm run build
+      - npm run check:offline
+
   test:e2e:
     summary: Runs the Playwright browser tests against a server build
     desc: |

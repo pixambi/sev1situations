@@ -15,5 +15,5 @@
     "checkJs": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "vitest.setup.ts", "src/**/*.js", "src/**/*.svelte", "bindings"],
+  "include": ["src/**/*.ts", "tools/**/*.ts", "vitest.setup.ts", "src/**/*.js", "src/**/*.svelte", "bindings"],
 }

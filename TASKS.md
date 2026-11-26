@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is next. Done tasks are marked `[x]`.
+**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060 done). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -160,7 +160,7 @@ Use the Carbon MCP for every component (R-UI-3). Needs spikes W1 to W4.
 
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
-| T-060 | Scaffold the Wails v3 shell and the Svelte 5 + TypeScript + Vite frontend (`frontend/`, `internal/gui`, root `embed.go`), `task dev` and `task build`, CSP, offline build, committed generated bindings with a CI check. | R-UI-1 to R-UI-4, R-LANG-3, 3.8 | L | `task build` produces `Sev1 Situations.app` that opens a window with no network access. CI fails if the bindings are stale. |
+| T-060 | [x] Scaffold the Wails v3 shell and the Svelte 5 + TypeScript + Vite frontend (`frontend/`, `internal/gui`, root `embed.go`), `task dev` and `task build`, CSP, offline build, committed generated bindings with a CI check. | R-UI-1 to R-UI-4, R-LANG-3, 3.8 | L | `task build` produces `Sev1 Situations.app` that opens a window with no network access. CI fails if the bindings are stale. |
 | T-061 | Services and events skeleton in `internal/gui` (3.4): thin services over the engine, event publishing from the engine event stream, input validation. | R-APP-3, R-QUAL-5, 3.4 | L | Go tests for each service with the fake runtime. The frontend receives `run:state` snapshots. |
 | T-062 | App launch: window versus CLI split, single-instance behaviour, start-up checks and leftover cleanup surfaced in the UI, graceful quit with confirmation during a run. | R-APP-2, R-APP-5, R-APP-6, R-APP-8, R-STATE-3 | M | Manual check. Quitting leaves nothing behind. A second launch focuses the first window. |
 | T-063 | Scenarios page: grouped catalogue, filters, license-needed state, blocked-while-running notice. | 6.1, 6.6 | M | Vitest component tests. |

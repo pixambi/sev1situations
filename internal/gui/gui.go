@@ -26,7 +26,8 @@ func Run(assets fs.FS) error {
 		Name:        "Sev1 Situations",
 		Description: "Role-played severity-1 incident calls for HashiCorp products",
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			Handler:    application.AssetFileServerFS(assets),
+			Middleware: assetMiddleware(),
 		},
 		// Only used when built with -tags server, which the Playwright e2e tests do.
 		Server: application.ServerOptions{

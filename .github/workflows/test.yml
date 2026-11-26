@@ -25,6 +25,9 @@ jobs:
         run: git diff --exit-code frontend/bindings
       - run: npm run build
         working-directory: frontend
+      # R-UI-7: the built app must not load anything from the network.
+      - run: npm run check:offline
+        working-directory: frontend
       - run: go vet ./...
       - run: go test -tags server ./...
       # R-LANG-2: everything under internal/ except the Wails shell is pure Go.

@@ -15,3 +15,11 @@ if (!("innerText" in HTMLElement.prototype)) {
     },
   });
 }
+
+// jsdom has no matchMedia. Tests that care about the system theme replace this.
+if (!window.matchMedia) {
+  window.matchMedia = ((query: string) => ({
+    matches: false, media: query, onchange: null,
+    addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
+}
