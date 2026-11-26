@@ -261,3 +261,25 @@ func TestNodeActionsAreClosedWhileAnOperationRuns(t *testing.T) {
 		t.Errorf("a node action during an operation = %v, want ErrBusy", err)
 	}
 }
+
+func TestContainerOfFindsALiveNodeAndRefusesTheRest(t *testing.T) {
+	r := newRig(t, testScenario)
+	if _, err := r.e.ContainerOf("node-1"); !errors.Is(err, ErrNoRun) {
+		t.Fatalf("with no run: %v", err)
+	}
+	r.start()
+
+	id, err := r.e.ContainerOf("node-1")
+	if err != nil || id == "" {
+		t.Fatalf("ContainerOf(node-1) = %q, %v", id, err)
+	}
+	if _, err := r.e.ContainerOf("node-9"); err == nil {
+		t.Error("an unknown node has a container")
+	}
+	if err := r.e.NodeAction(context.Background(), "node-1", ActionRemove); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.e.ContainerOf("node-1"); !errors.Is(err, ErrWrongState) {
+		t.Errorf("a removed node: %v", err)
+	}
+}

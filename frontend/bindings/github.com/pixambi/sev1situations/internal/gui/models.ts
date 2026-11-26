@@ -225,3 +225,11 @@ export interface StepGuide {
      */
     "References": string;
 }
+
+/**
+ * StreamInfo is one log a node offers.
+ */
+export interface StreamInfo {
+    "ID": string;
+    "Label": string;
+}

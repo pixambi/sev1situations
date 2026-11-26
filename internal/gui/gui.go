@@ -59,6 +59,7 @@ func Run(assets fs.FS, deps *Deps) error {
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
 			application.NewService(NewClusterService(ctx, conn)),
+			application.NewService(NewLogService(ctx, conn, emit)),
 		}
 	}
 

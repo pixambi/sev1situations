@@ -6,6 +6,7 @@
   import RunHeader from "./RunHeader.svelte";
   import StepCard from "./StepCard.svelte";
   import ClusterTab from "./ClusterTab.svelte";
+  import LogsTab from "./LogsTab.svelte";
 
   interface Props {
     snapshot: Snapshot;
@@ -80,6 +81,7 @@
     <Tabs>
       <Tab label="Steps" />
       <Tab label="Cluster" />
+      <Tab label="Logs" />
       <svelte:fragment slot="content">
         <TabContent>
             {#if sandbox}
@@ -132,6 +134,9 @@
         <TabContent>
           <!-- The tab reads the deployment again whenever the run changes, which covers a node action finishing. -->
           <ClusterTab version={(snapshot.Events ?? []).length} />
+        </TabContent>
+        <TabContent>
+          <LogsTab nodes={snapshot.Nodes ?? []} />
         </TabContent>
       </svelte:fragment>
     </Tabs>

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pixambi/sev1situations/internal/engine"
 	"github.com/pixambi/sev1situations/internal/product"
+	"github.com/pixambi/sev1situations/internal/runtime"
 )
 
 // Connection is the core once it is joined to the container runtime.
@@ -15,6 +16,10 @@ type Connection struct {
 	Engine *engine.Engine
 	// View describes a run's deployment for the Cluster tab. It may be nil.
 	View func(ctx context.Context, runID string) product.ClusterView
+	// Runtime reads logs and attaches terminals. It may be nil.
+	Runtime runtime.Runtime
+	// LogStreams lists the logs a node offers. It may be nil.
+	LogStreams func(runID, node string) []product.LogStream
 	// Notices are sentences describing what start-up cleanup did.
 	Notices []string
 }

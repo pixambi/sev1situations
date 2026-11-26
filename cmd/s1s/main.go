@@ -53,7 +53,7 @@ func main() {
 			if err != nil {
 				return nil, err
 			}
-			return &gui.Connection{Engine: conn.Engine, View: conn.Deployer.View, Notices: conn.Startup.Notices()}, nil
+			return &gui.Connection{Engine: conn.Engine, View: conn.Deployer.View, Runtime: conn.Runtime, LogStreams: conn.Deployer.LogStreams, Notices: conn.Startup.Notices()}, nil
 		},
 	}
 	if err := gui.Run(sev1situations.Frontend, deps); err != nil {

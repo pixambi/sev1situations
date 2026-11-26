@@ -30,6 +30,8 @@ type Connection struct {
 	Settings *settings.Store
 	// Products are the registered products.
 	Products *product.Registry
+	// Runtime is the container runtime.
+	Runtime runtime.Runtime
 	// Startup says what start-up cleanup found and removed.
 	Startup StartupReport
 }
@@ -80,7 +82,7 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 	eng := engine.New(engine.Deps{
 		Registry: prims, Deployer: deployer, Runtime: rt, OnEvent: onEvent,
 	})
-	return &Connection{Engine: eng, Deployer: deployer, Settings: store, Products: products, Startup: report}, nil
+	return &Connection{Engine: eng, Deployer: deployer, Settings: store, Products: products, Runtime: rt, Startup: report}, nil
 }
 
 // Notices describes what start-up cleanup did, as sentences for the instructor.

@@ -213,3 +213,21 @@ func (e *Engine) refreshNodes(ctx context.Context, r *run) {
 		}
 	}
 }
+
+// ContainerOf returns the runtime container ID of a node of the current run, for
+// reading its logs or opening a terminal. A removed node has none.
+func (e *Engine) ContainerOf(node string) (string, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.run == nil {
+		return "", ErrNoRun
+	}
+	n, ok := e.run.deployment.Nodes[node]
+	if !ok {
+		return "", fmt.Errorf("there is no node %q", node)
+	}
+	if e.run.nodeState[node] == NodeRemoved {
+		return "", fmt.Errorf("node %q: %w: it has been removed", node, ErrWrongState)
+	}
+	return n.ContainerID, nil
+}

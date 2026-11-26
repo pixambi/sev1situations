@@ -13,6 +13,9 @@ type notice string
 
 func (n notice) Error() string { return string(n) }
 
+// errNoRun is the engine's error for there being no run, for services that check it themselves.
+var errNoRun = engine.ErrNoRun
+
 // plain turns an error from the core into the sentence the instructor sees
 // (R-QUAL-1). Wails passes the text of the error to the frontend, which shows it
 // in an inline notification. Errors with no better wording keep their own text,

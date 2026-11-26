@@ -41,6 +41,23 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await page.getByRole("button", { name: "Start node-1" }).click();
   await expect(page.getByText("running", { exact: true })).toBeVisible({ timeout: 60_000 });
 
+  // The Logs tab follows the node's real log, and filters it.
+  await page.getByRole("tab", { name: "Logs" }).click();
+  const log = page.getByRole("log", { name: "Log lines" });
+  await expect(log).toContainText("[INFO]", { timeout: 60_000 });
+  await page.getByRole("searchbox").fill("core");
+  await expect(page.locator("mark").first()).toBeVisible();
+  await page.getByRole("searchbox").fill("");
+
+  // The audit log is a file inside the container. Opening it must not fail, and the node's own
+  // requests (the cluster tab reads it) show up in it.
+  await page.getByLabel("Log", { exact: true }).selectOption("audit");
+  await expect(page.getByText("This log could not be read")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Cluster" }).click();
+  await page.getByRole("button", { name: "Refresh" }).click();
+  await page.getByRole("tab", { name: "Logs" }).click();
+  await expect(page.getByText("This log could not be read")).toHaveCount(0);
+
   // Another scenario cannot be started meanwhile.
   await page.getByRole("tab", { name: "Scenarios" }).click();
   await expect(page.getByText("A scenario is running")).toBeVisible();
