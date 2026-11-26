@@ -44,6 +44,11 @@ type sim struct {
 	auditEnabled int
 	calls        []call
 
+	// promotion models autopilot: a node that has just joined is a non-voter for
+	// this many list-peers calls before it is promoted.
+	promoteAfter int
+	pending      map[string]int // container ID -> list-peers calls left as a non-voter
+
 	// failure switches
 	neverStart   map[string]bool // by node name
 	joinFailures int
@@ -173,7 +178,22 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 					return simFail(2, "leader not ready")
 				}
 				n.initialized = true
+				s.dropVoterNamed(n.name) // a node that rejoins replaces its old membership
 				s.voters = append(s.voters, c.ID)
+				if s.promoteAfter > 0 {
+					if s.pending == nil {
+						s.pending = map[string]int{}
+					}
+					s.pending[c.ID] = s.promoteAfter
+				}
+				return ok()
+			case "remove-peer":
+				if !hasToken {
+					return simFail(2, "permission denied")
+				}
+				if !s.dropVoterNamed(args[3]) {
+					return simFail(2, "peer not found")
+				}
 				return ok()
 			case "list-peers":
 				if !hasToken {
@@ -181,7 +201,12 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 				}
 				var servers []map[string]any
 				for _, id := range s.voters {
-					servers = append(servers, map[string]any{"node_id": s.nodes[id].name, "leader": id == s.leader, "voter": true})
+					voter := true
+					if s.pending[id] > 0 {
+						s.pending[id]--
+						voter = false
+					}
+					servers = append(servers, map[string]any{"node_id": s.nodes[id].name, "leader": id == s.leader, "voter": voter})
 				}
 				b, _ := json.Marshal(map[string]any{"data": map[string]any{"config": map[string]any{"servers": servers}}})
 				return runtime.ExecResult{Stdout: string(b)}
@@ -189,6 +214,21 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 		}
 	}
 	return simFail(2, "unsupported command: "+strings.Join(args, " "))
+}
+
+// dropVoterNamed removes the voter with the given node name, and says whether there was one.
+func (s *sim) dropVoterNamed(name string) bool {
+	kept := s.voters[:0:0]
+	found := false
+	for _, id := range s.voters {
+		if s.nodes[id].name == name {
+			found = true
+			continue
+		}
+		kept = append(kept, id)
+	}
+	s.voters = kept
+	return found
 }
 
 // helpers for assertions ------------------------------------------------------

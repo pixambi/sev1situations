@@ -161,6 +161,51 @@ func deployed(t *testing.T, p product.Product, o Options) {
 		_ = p.Describe(ctx, rt, product.Deployment{Cluster: "empty", Product: p.Name()}) // must not panic
 	})
 
+	t.Run("every node declares node actions from the shared vocabulary", func(t *testing.T) {
+		valid := map[product.NodeAction]bool{
+			product.ActionStop: true, product.ActionStart: true, product.ActionRemove: true, product.ActionRevive: true,
+		}
+		for _, node := range d.Nodes {
+			actions := p.NodeActions(d, node.Name)
+			if len(actions) == 0 {
+				t.Errorf("node %s declares no actions (R-VIEW-6)", node.Name)
+			}
+			for _, a := range actions {
+				if !valid[a] {
+					t.Errorf("node %s declares the unknown action %q", node.Name, a)
+				}
+			}
+		}
+	})
+
+	t.Run("a removed node can be revived", func(t *testing.T) {
+		victim := d.Nodes[len(d.Nodes)-1]
+		if err := rt.Remove(ctx, victim.ContainerID); err != nil {
+			t.Fatal(err)
+		}
+		fresh, err := p.Revive(ctx, rt, spec, d, victim.Name)
+		if err != nil {
+			t.Fatalf("Revive: %v", err)
+		}
+		if fresh.Name != victim.Name || fresh.Cluster != victim.Cluster || fresh.ContainerID == "" || fresh.ContainerID == victim.ContainerID {
+			t.Errorf("revived node = %+v, want the same name and cluster in a new container (was %+v)", fresh, victim)
+		}
+		cs, err := rt.List(ctx, spec.Run.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, c := range cs {
+			found = found || c.ID == fresh.ContainerID
+		}
+		if !found {
+			t.Error("the revived node has no container in the run (R-RUN-4)")
+		}
+		if _, err := p.Revive(ctx, rt, spec, d, "no-such-node"); err == nil {
+			t.Error("Revive of a node that is not in the deployment succeeded")
+		}
+	})
+
 	t.Run("every node offers log streams with unique IDs", func(t *testing.T) {
 		for _, node := range d.Nodes {
 			streams := p.LogStreams(node)

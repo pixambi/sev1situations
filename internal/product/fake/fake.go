@@ -109,6 +109,28 @@ func (p *Product) LogStreams(primitive.Node) []product.LogStream {
 	return []product.LogStream{{ID: "operational", Label: "Operational log"}}
 }
 
+// NodeActions implements product.Product: every action on every node.
+func (p *Product) NodeActions(product.Deployment, string) []product.NodeAction {
+	return []product.NodeAction{product.ActionStop, product.ActionStart, product.ActionRemove, product.ActionRevive}
+}
+
+// Revive implements product.Product: it starts a new container with the node's name.
+func (p *Product) Revive(ctx context.Context, rt runtime.Runtime, spec product.DeploySpec, d product.Deployment, node string) (primitive.Node, error) {
+	for _, n := range d.Nodes {
+		if n.Name != node {
+			continue
+		}
+		c, err := rt.StartContainer(ctx, runtime.ContainerOptions{
+			Run: spec.Run, Name: node, Image: spec.Image, Network: spec.Network, Command: []string{"sleep", "300"},
+		})
+		if err != nil {
+			return primitive.Node{}, fmt.Errorf("revive %s: %w", node, err)
+		}
+		return primitive.Node{Name: node, Cluster: n.Cluster, ContainerID: c.ID, IP: c.IP}, nil
+	}
+	return primitive.Node{}, fmt.Errorf("revive: there is no node %q", node)
+}
+
 // Primitives implements product.Product.
 func (p *Product) Primitives() []primitive.Primitive { return p.Prims }
 

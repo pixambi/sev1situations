@@ -46,6 +46,14 @@ type Product interface {
 	Describe(ctx context.Context, rt runtime.Runtime, d Deployment) ClusterView
 	// LogStreams lists the logs available for a node (R-VIEW-3, R-VIEW-8).
 	LogStreams(n primitive.Node) []LogStream
+	// NodeActions declares which actions the instructor may take on a node
+	// (R-VIEW-6). Which of them apply at a given moment depends on the node's
+	// state, which the engine checks.
+	NodeActions(d Deployment, node string) []NodeAction
+	// Revive recreates a node that was removed, with its original configuration,
+	// and joins it back to its cluster. The deployment is the one Deploy returned
+	// and spec is the one it was given, so the node comes back as it was.
+	Revive(ctx context.Context, rt runtime.Runtime, spec DeploySpec, d Deployment, node string) (primitive.Node, error)
 	// Primitives are the verbs the product adds for scenarios, such as
 	// vault.status. Their names start with the product's name.
 	Primitives() []primitive.Primitive
@@ -53,6 +61,21 @@ type Product interface {
 	// Enterprise license (R-SET-4). Their keys start with the product's name.
 	SettingsFields() []settings.Field
 }
+
+// NodeAction is something the instructor can do to a node (R-VIEW-6).
+type NodeAction string
+
+// Node actions.
+const (
+	// ActionStop stops a running node.
+	ActionStop NodeAction = "stop"
+	// ActionStart starts a stopped node.
+	ActionStart NodeAction = "start"
+	// ActionRemove removes a node. It stays visible as a placeholder.
+	ActionRemove NodeAction = "remove"
+	// ActionRevive recreates a removed node with its original configuration.
+	ActionRevive NodeAction = "revive"
+)
 
 // Settings gives a product read access to the saved settings, such as a license.
 // The settings store satisfies it.

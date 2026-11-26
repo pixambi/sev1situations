@@ -304,9 +304,17 @@ func (c *cluster) join(ctx context.Context, d *product.Deployment) error {
 		}
 	}
 
-	c.say("waiting for %d voter(s)", len(d.Nodes))
-	return c.poll(ctx, first, c.p.timing.Join, "show every node as a voter", func() (bool, string, error) {
-		res, err := c.vault(ctx, first, token, "operator", "raft", "list-peers", "-format=json")
+	return c.waitVoters(ctx, first, token, len(d.Nodes))
+}
+
+// waitVoters waits until the cluster, asked through one node, lists the given
+// number of voters and a leader. A node that has just joined is not a voter until
+// Vault's autopilot has watched it for its stabilisation time, so it is not part
+// of the cluster for decisions until then.
+func (c *cluster) waitVoters(ctx context.Context, via primitive.Node, token string, want int) error {
+	c.say("waiting for %d voter(s)", want)
+	return c.poll(ctx, via, c.p.timing.Join, "show every node as a voter", func() (bool, string, error) {
+		res, err := c.vault(ctx, via, token, "operator", "raft", "list-peers", "-format=json")
 		if err != nil {
 			return false, "", err
 		}
@@ -318,7 +326,7 @@ func (c *cluster) join(ctx context.Context, d *product.Deployment) error {
 			return false, err.Error(), nil
 		}
 		n, leader := peers.voters()
-		return n == len(d.Nodes) && leader != "", fmt.Sprintf("%d of %d voters, leader %q", n, len(d.Nodes), leader), nil
+		return n == want && leader != "", fmt.Sprintf("%d of %d voters, leader %q", n, want, leader), nil
 	})
 }
 

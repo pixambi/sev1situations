@@ -144,7 +144,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-052 | [x] Vault single and multi-node Raft deploy: install binary, render config, start, wait for readiness, `init` (5 shares, threshold 3), unseal, join, audit on. | R-VIEW-3, 7 | L | Integration test brings up 3 nodes with a leader. |
 | T-053 | [x] Vault `Describe` (Cluster tab minimum, 5.5) and `LogStreams` (operational, audit). | R-VIEW-7, R-VIEW-8 | M | Tests. |
 | T-054 | [x] Vault primitives: `vault.cli`, `status`, `raft-peers`, `expect-no-leader`, `kv-put`, `kv-get`, `unseal`, `init`. | 4.5 | L | Each has tests with scripted exec responses. |
-| T-055 | Vault node actions, including **revive** (fresh node that rejoins). | R-VIEW-6, 7 | M | Integration test. |
+| T-055 | [x] Vault node actions, including **revive** (fresh node that rejoins). | R-VIEW-6, 7 | M | Integration test. |
 | T-056 | `scenarios/vault/sandbox/` (5.3.2) including the node-count parameter. | 5.3.2 | M | Loads, validates, and runs through the engine with the real runtime. |
 | T-057 | Temporary CLI or test harness to run the sandbox and print state, so the slice can be proven before any UI exists. | R-AGENT-6 | S | Run manually. Everything is destroyed afterwards. |
 

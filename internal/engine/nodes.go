@@ -6,25 +6,28 @@ import (
 	"sort"
 
 	"github.com/pixambi/sev1situations/internal/primitive"
+	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/runtime"
 	"github.com/pixambi/sev1situations/internal/scenario"
 )
 
-// NodeAction is something the instructor can do to a node (R-VIEW-6).
-type NodeAction string
+// NodeAction is something the instructor can do to a node (R-VIEW-6). The
+// vocabulary belongs to the product package, which declares which actions each
+// node offers.
+type NodeAction = product.NodeAction
 
 // Node actions. Which of them a node offers is declared by its product
 // (Deployment.Actions), and which apply right now depends on its state.
 const (
 	// ActionStop stops a running node.
-	ActionStop NodeAction = "stop"
+	ActionStop = product.ActionStop
 	// ActionStart starts a stopped node.
-	ActionStart NodeAction = "start"
+	ActionStart = product.ActionStart
 	// ActionRemove removes a node. It stays in the snapshot as a placeholder.
-	ActionRemove NodeAction = "remove"
+	ActionRemove = product.ActionRemove
 	// ActionRevive recreates a removed node, with the same configuration, and
 	// joins it back to its cluster.
-	ActionRevive NodeAction = "revive"
+	ActionRevive = product.ActionRevive
 )
 
 // NodeState is the state of a node's container.

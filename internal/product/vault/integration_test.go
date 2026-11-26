@@ -80,12 +80,13 @@ func TestDeployARealThreeNodeCluster(t *testing.T) {
 	}
 
 	start := time.Now()
-	d, err := p.Deploy(ctx, rt, product.DeploySpec{
+	spec := product.DeploySpec{
 		Run: run, Network: net.ID, Cluster: "primary", Nodes: 3, Storage: "raft",
 		Edition: release.Community, Version: version, Binary: binary, Image: AlpineImage,
 		Ports:    runtime.NewPortAllocator(),
 		Progress: func(s string) { t.Logf("  %s", s) },
-	})
+	}
+	d, err := p.Deploy(ctx, rt, spec)
 	if err != nil {
 		t.Fatalf("Deploy: %v", err)
 	}
@@ -168,6 +169,10 @@ func TestDeployARealThreeNodeCluster(t *testing.T) {
 	// The primitives work on the real cluster.
 	realPrimitives(t, ctx, rt, d)
 
+	// A node that is removed can be revived: a fresh container takes its place, rejoins the
+	// cluster, is unsealed and catches up, so it can read what was written before.
+	reviveRealNode(t, ctx, rt, p, spec, d)
+
 	// The API answers on the published loopback port, from this computer.
 	if len(d.Published) != 3 {
 		t.Fatalf("published = %+v", d.Published)
@@ -242,5 +247,48 @@ func realPrimitives(t *testing.T, ctx context.Context, rt runtime.Runtime, d pro
 	res := run("vault.cli", m{"node": "node-1", "command": []any{"token", "lookup"}})
 	if strings.Contains(res.Evidence, d.Creds["rootToken"]) {
 		t.Error("the root token is in the evidence")
+	}
+}
+
+// reviveRealNode removes node-3 and revives it.
+func reviveRealNode(t *testing.T, ctx context.Context, rt runtime.Runtime, p *Product, spec product.DeploySpec, d product.Deployment) {
+	t.Helper()
+	victim := d.Nodes[2]
+	if err := rt.Remove(ctx, victim.ContainerID); err != nil {
+		t.Fatalf("remove %s: %v", victim.Name, err)
+	}
+
+	start := time.Now()
+	fresh, err := p.Revive(ctx, rt, spec, d, victim.Name)
+	if err != nil {
+		t.Fatalf("Revive: %v", err)
+	}
+	t.Logf("revived %s in %s: new container %s at %s", fresh.Name, time.Since(start).Round(time.Second), fresh.ContainerID[:12], fresh.IP)
+	if fresh.ContainerID == victim.ContainerID {
+		t.Error("the revived node reuses the removed container")
+	}
+
+	nodes := map[string]primitive.Node{}
+	for _, n := range d.Nodes {
+		nodes[n.Name] = n
+	}
+	nodes[fresh.Name] = fresh
+	reg := primitive.NewRegistry()
+	for _, prim := range p.Primitives() {
+		if err := reg.Register(prim); err != nil {
+			t.Fatal(err)
+		}
+	}
+	env := primitive.Env{Runtime: rt, Nodes: nodes, Creds: map[string]map[string]string{d.Cluster: d.Creds}}
+	for name, args := range map[string]map[string]any{
+		"vault.raft-peers": {"node": "node-1", "servers": 3, "voters": 3},
+		"vault.status":     {"node": "node-3", "sealed": false, "initialized": true},
+		// Written before the node was removed: the replacement caught up from the leader.
+		"vault.kv-get": {"node": "node-3", "path": "app/db", "field": "user", "equals": "ada"},
+	} {
+		res, err := reg.Run(ctx, name, env, args)
+		if err != nil || res.Status != primitive.Pass {
+			t.Errorf("after the revive, %s %v = %+v, %v", name, args, res, err)
+		}
 	}
 }
