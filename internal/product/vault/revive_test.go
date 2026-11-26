@@ -207,7 +207,30 @@ func TestReviveThatNeverGetsAVoterSaysSo(t *testing.T) {
 	tb.sim.promoteAfter = 1_000_000
 
 	_, err := tb.p.Revive(context.Background(), tb.rt, tb.spec, d, "node-3")
-	if err == nil || !strings.Contains(err.Error(), "did not show every node as a voter") || !strings.Contains(err.Error(), "2 of 3 voters") {
-		t.Errorf("Revive = %v, want it to say how many voters there were", err)
+	if err == nil || !strings.Contains(err.Error(), "see node-3 become a voter") || !strings.Contains(err.Error(), "node-3 is a non-voter") {
+		t.Errorf("Revive = %v, want it to say that node-3 never became a voter", err)
+	}
+}
+
+// The scenario that removes two nodes has the instructor bring them back one at a time. Reviving the first must
+// not wait for the second, which is still gone.
+func TestReviveDoesNotWaitForOtherNodesThatAreStillGone(t *testing.T) {
+	tb := newTestbed(t, 3)
+	tb.spec.Ports = runtime.NewPortAllocator()
+	d := tb.mustDeploy()
+	tb.removeNode(d, "node-2")
+	tb.removeNode(d, "node-3")
+	// Recovery with peers.json left node-1 as the only member, so the removed nodes are not in the list.
+	tb.sim.mu.Lock()
+	tb.sim.dropVoterNamed("node-2")
+	tb.sim.dropVoterNamed("node-3")
+	tb.sim.mu.Unlock()
+	tb.sim.promoteAfter = 2
+
+	if _, err := tb.p.Revive(context.Background(), tb.rt, tb.spec, d, "node-2"); err != nil {
+		t.Fatalf("reviving node-2 while node-3 is gone: %v", err)
+	}
+	if st := tb.sim.state("node-2"); !st.started || st.sealed {
+		t.Errorf("node-2 = %+v, want it back and unsealed", st)
 	}
 }

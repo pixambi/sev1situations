@@ -1,0 +1,121 @@
+id: vault-raft-lost-quorum
+name: Raft Lost Quorum
+summary: Two of three Vault nodes disappear, the cluster loses quorum, and the trainee guides the instructor through recovering the survivor with peers.json.
+product: vault
+editions: [community, enterprise]
+difficulty: advanced
+estimatedMinutes: 20
+tags: [vault, raft, integrated-storage, quorum, disaster-recovery, peers.json]
+objectives:
+  - Explain Raft quorum, floor(N/2) + 1, and why losing two of three nodes leaves no leader.
+  - Recognise lost quorum from vault status, the HTTP error and the Raft logs.
+  - Recover with peers.json, saying where it goes, what its fields are and why Vault must be stopped first.
+  - Verify the recovery, with an active leader, one voter and a write that succeeds.
+  - Grow back to three nodes safely, with fresh nodes.
+prerequisites:
+  - Vault concepts such as init, unseal and KV.
+  - Raft integrated storage configuration.
+  - Basic container commands.
+  - A Vault Enterprise license in Settings is needed for the Enterprise edition.
+parameters:
+  - id: version
+    type: version
+    product: vault
+    label: Vault version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Community, or Enterprise, which needs a license saved in Settings.
+topology:
+  clusters:
+    - name: primary
+      product: vault
+      nodes: 3
+      storage: raft
+initialState: >-
+  One network and three Vault nodes, node-1 to node-3, on Raft integrated storage that they join
+  by the leader's address, with TLS off, mlock off and the audit log on. The cluster is
+  initialised with five key shares and a threshold of three, every node is unsealed and node-1
+  leads. No secrets engine is mounted. The Cluster tab shows the addresses, the node IDs, the
+  root token and the unseal keys.
+failureCreated: >-
+  The Vault process on node-2 and node-3 is stopped and their containers are removed, so two of
+  the three voters are gone for good. node-1 is up and unsealed but cannot win an election, so the
+  cluster has no leader. It can be recovered with peers.json.
+successCriteria: >-
+  node-1 is unsealed and active, the Raft peer list shows exactly one server and it is a voter,
+  and a secret can be written. In the extension, the peer list shows three voters again.
+pitfalls:
+  - peers.json is only read at start-up, so placing it while Vault runs does nothing.
+  - It belongs in the raft folder inside the storage path, not in the storage path itself.
+  - The id must match the node_id exactly, and the address is the container IP with the cluster port 8201, not the API port 8200.
+  - non_voter must be false, or the lone node cannot elect itself.
+  - Vault must be completely stopped before the file is placed, and unsealed again after it starts.
+  - Re-adding the removed nodes with their old data would bring back the old configuration, so they must be fresh.
+references:
+  - title: Manual recovery using peers.json
+    url: https://developer.hashicorp.com/vault/docs/concepts/integrated-storage#manual-recovery-using-peers-json
+  - title: Integrated storage
+    url: https://developer.hashicorp.com/vault/docs/concepts/integrated-storage
+  - title: Raft consensus
+    url: https://raft.github.io/
+steps:
+  - id: outage
+    kind: breakage
+    title: Cause the outage
+    guide: steps/outage.md
+    resetPoint: true
+    action:
+      - primitive: container.remove
+        args:
+          nodes: [node-2, node-3]
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.expect-no-leader
+            args:
+              node: node-1
+  - id: recover
+    kind: verification
+    title: Quorum recovered
+    guide: steps/recover.md
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args:
+              node: node-1
+              sealed: false
+              active: true
+      - primitive: vault.raft-peers
+        args:
+          node: node-1
+          servers: 1
+          voters: 1
+          leader: node-1
+      - primitive: vault.kv-put
+        args:
+          node: node-1
+          path: recovery-check
+          data:
+            recovered: "yes"
+  - id: restore
+    kind: verification
+    title: Restore three nodes (extension)
+    guide: steps/restore.md
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.raft-peers
+            args:
+              node: node-1
+              servers: 3
+              voters: 3

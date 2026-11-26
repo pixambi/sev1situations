@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M6 are done, and so are all the spikes. M7, the Vault scenarios, is next. Done tasks are marked `[x]`.
+**Status:** M0 to M6 are done, and so are all the spikes. M7, the Vault scenarios, is in progress (T-090 done). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -196,7 +196,7 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 
 | ID | Scenario | Section | New work it needs | Size |
 |---|---|---|---|---|
-| T-090 | Raft Lost Quorum | 5.3.1 | Kill and remove nodes, `peers.json` flow checks, revive as fresh nodes | L |
+| T-090 | [x] (Its generated docs page, R-SCN-14, arrives with the generator in M9.) Raft Lost Quorum | 5.3.1 | Kill and remove nodes, `peers.json` flow checks, revive as fresh nodes | L |
 | T-091 | Broken KMS (proposed) | 5.3.7 | Transit seal, a KMS Vault, token revoke, `product/vault` seal options | L |
 | T-092 | HSM Auto-Unseal Failure | 5.3.6 | `+ent.hsm` binary, glibc image, SoftHSM install and `softhsm.*` primitives | L |
 | T-093 | DR Failover and Failback | 5.3.3 | DR replication setup, batch DR token, `vault.replication-status` | L |

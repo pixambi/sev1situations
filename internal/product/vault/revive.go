@@ -77,17 +77,55 @@ func (p *Product) Revive(ctx context.Context, rt runtime.Runtime, spec product.D
 	if err := c.unseal(ctx, node, unsealKeys(&d)); err != nil {
 		return node, err
 	}
-	// Until autopilot has promoted it the node is only a non-voting member, so wait for it.
+	// Until autopilot has promoted it the node is only a non-voting member, so wait for it. Only for
+	// this node: the others may be gone on purpose, as when a scenario removes two nodes and the
+	// instructor brings them back one at a time.
+	var others []primitive.Node
 	for _, o := range d.Nodes {
 		if o.Name != name {
-			if err := c.waitVoters(ctx, o, d.Creds["rootToken"], len(d.Nodes)); err != nil {
-				return node, err
-			}
-			break
+			others = append(others, o)
 		}
+	}
+	if err := c.waitVoter(ctx, others, d.Creds["rootToken"], name); err != nil {
+		return node, err
 	}
 	c.say("%s is back in the cluster", name)
 	return node, nil
+}
+
+// waitVoter waits until the cluster, asked through any of the other nodes that answers, lists
+// the named node as a voter and has a leader. A node that is gone, or does not answer, is
+// skipped for the next one.
+func (c *cluster) waitVoter(ctx context.Context, others []primitive.Node, token, name string) error {
+	c.say("waiting for %s to become a voter", name)
+	attempt := 0
+	return c.poll(ctx, others[0], c.p.timing.Join, "see "+name+" become a voter", func() (bool, string, error) {
+		via := others[attempt%len(others)]
+		attempt++
+		res, err := c.vault(ctx, via, token, "operator", "raft", "list-peers", "-format=json")
+		if err != nil {
+			return false, fmt.Sprintf("%s did not answer: %v", via.Name, err), nil
+		}
+		if res.ExitCode != 0 {
+			return false, firstLine(res.Stderr), nil
+		}
+		peers, err := parsePeers(res.Stdout)
+		if err != nil {
+			return false, err.Error(), nil
+		}
+		_, leader := peers.voters()
+		for _, s := range peers.Data.Config.Servers {
+			if s.NodeID != name {
+				continue
+			}
+			role := "a non-voter"
+			if s.Voter {
+				role = "a voter"
+			}
+			return s.Voter && leader != "", fmt.Sprintf("%s is %s, leader %q", name, role, leader), nil
+		}
+		return false, name + " is not in the member list yet", nil
+	})
 }
 
 // rejoin brings a revived node into the cluster through any other node that
