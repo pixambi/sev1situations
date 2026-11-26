@@ -101,8 +101,8 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-015 | [x] Podman: `Attach` for terminals (exec with a TTY). | R-TERM-2 | M | Integration test sends input and reads output. |
 | T-016 | [x] Podman: `List` and `RemoveRun` by label, idempotent, continues past a failed removal and reports it. | R-STATE-3, 7 | M | Integration test leaves nothing behind, including after a simulated crash. |
 | T-017 | [x] Host port allocator (high range, checks the port is free). | 7 | S | Unit tests. |
-| T-018 | `release` package: list versions for a product, including `+ent` and `+ent.hsm`. | R-RUN-7, S7 | M | Tests with recorded responses. |
-| T-019 | `release`: download, verify the SHA-256 against `SHA256SUMS` (no signature check, decision D7), unzip, cache by product, edition and version. Cache lives in the app data directory. | R-RUN-6, R-RUN-8, R-RUN-9 | L | Tests with a local fake server. A failed checksum aborts and nothing is cached. Second use needs no network. |
+| T-018 | [x] `release` package: list versions for a product, including `+ent` and `+ent.hsm`. | R-RUN-7, S7 | M | Tests with recorded responses. |
+| T-019 | [x] `release`: download, verify the SHA-256 against `SHA256SUMS` (no signature check, decision D7), unzip, cache by product, edition and version. Cache lives in the app data directory. | R-RUN-6, R-RUN-8, R-RUN-9 | L | Tests with a local fake server. A failed checksum aborts and nothing is cached. Second use needs no network. |
 | T-020 | Start-up checks and leftover cleanup in `app`: Podman present, machine running, remove labelled leftovers and report them. | F-10, F-11, R-STATE-3 | M | Tested with the fake runtime. |
 | T-021 | Image handling: pull on demand with progress, no deletion of images. | R-RUN-9, R-STATE-5 | S | Manual check, unit test for the policy. |
 

@@ -1,0 +1,695 @@
+{
+ "name": "vault",
+ "versions": {
+  "1.21.0": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.0_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_darwin_amd64.zip",
+     "version": "1.21.0"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.0_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_darwin_arm64.zip",
+     "version": "1.21.0"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_1.21.0_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_linux_386.zip",
+     "version": "1.21.0"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.0_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_linux_amd64.zip",
+     "version": "1.21.0"
+    },
+    {
+     "arch": "arm",
+     "filename": "vault_1.21.0_linux_arm.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_linux_arm.zip",
+     "version": "1.21.0"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.0_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0/vault_1.21.0_linux_arm64.zip",
+     "version": "1.21.0"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_1.21.0_SHA256SUMS",
+   "version": "1.21.0"
+  },
+  "1.21.0+ent": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.0+ent_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_darwin_amd64.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.0+ent_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_darwin_arm64.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_1.21.0+ent_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_linux_386.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.0+ent_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_linux_amd64.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "arm",
+     "filename": "vault_1.21.0+ent_linux_arm.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_linux_arm.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.0+ent_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_linux_arm64.zip",
+     "version": "1.21.0+ent"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_1.21.0+ent_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.0+ent/vault_1.21.0+ent_linux_s390x.zip",
+     "version": "1.21.0+ent"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_1.21.0+ent_SHA256SUMS",
+   "version": "1.21.0+ent"
+  },
+  "1.21.10+ent": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.10+ent_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_darwin_amd64.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.10+ent_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_darwin_arm64.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_1.21.10+ent_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_linux_386.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.10+ent_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_linux_amd64.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.10+ent_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_linux_arm64.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "ppc64le",
+     "filename": "vault_1.21.10+ent_linux_ppc64le.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_linux_ppc64le.zip",
+     "version": "1.21.10+ent"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_1.21.10+ent_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.10+ent/vault_1.21.10+ent_linux_s390x.zip",
+     "version": "1.21.10+ent"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_1.21.10+ent_SHA256SUMS",
+   "version": "1.21.10+ent"
+  },
+  "1.21.2": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.2_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.2/vault_1.21.2_darwin_amd64.zip",
+     "version": "1.21.2"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.2_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/1.21.2/vault_1.21.2_darwin_arm64.zip",
+     "version": "1.21.2"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_1.21.2_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.2/vault_1.21.2_linux_386.zip",
+     "version": "1.21.2"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_1.21.2_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.2/vault_1.21.2_linux_amd64.zip",
+     "version": "1.21.2"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_1.21.2_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/1.21.2/vault_1.21.2_linux_arm64.zip",
+     "version": "1.21.2"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_1.21.2_SHA256SUMS",
+   "version": "1.21.2"
+  },
+  "2.2.0": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0/vault_2.2.0_darwin_amd64.zip",
+     "version": "2.2.0"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0/vault_2.2.0_darwin_arm64.zip",
+     "version": "2.2.0"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.0_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0/vault_2.2.0_linux_386.zip",
+     "version": "2.2.0"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0/vault_2.2.0_linux_amd64.zip",
+     "version": "2.2.0"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0/vault_2.2.0_linux_arm64.zip",
+     "version": "2.2.0"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.0_SHA256SUMS",
+   "version": "2.2.0"
+  },
+  "2.2.0-rc1": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0-rc1_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1/vault_2.2.0-rc1_darwin_amd64.zip",
+     "version": "2.2.0-rc1"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0-rc1_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1/vault_2.2.0-rc1_darwin_arm64.zip",
+     "version": "2.2.0-rc1"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.0-rc1_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1/vault_2.2.0-rc1_linux_386.zip",
+     "version": "2.2.0-rc1"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0-rc1_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1/vault_2.2.0-rc1_linux_amd64.zip",
+     "version": "2.2.0-rc1"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0-rc1_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1/vault_2.2.0-rc1_linux_arm64.zip",
+     "version": "2.2.0-rc1"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.0-rc1_SHA256SUMS",
+   "version": "2.2.0-rc1"
+  },
+  "2.2.0-rc1+ent": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0-rc1+ent_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_darwin_amd64.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0-rc1+ent_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_darwin_arm64.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.0-rc1+ent_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_linux_386.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.0-rc1+ent_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_linux_amd64.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.0-rc1+ent_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_linux_arm64.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "ppc64le",
+     "filename": "vault_2.2.0-rc1+ent_linux_ppc64le.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_linux_ppc64le.zip",
+     "version": "2.2.0-rc1+ent"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_2.2.0-rc1+ent_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.0-rc1+ent/vault_2.2.0-rc1+ent_linux_s390x.zip",
+     "version": "2.2.0-rc1+ent"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.0-rc1+ent_SHA256SUMS",
+   "version": "2.2.0-rc1+ent"
+  },
+  "2.2.1": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.1_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_darwin_amd64.zip",
+     "version": "2.2.1"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.1_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_darwin_arm64.zip",
+     "version": "2.2.1"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.1_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_386.zip",
+     "version": "2.2.1"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.1_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip",
+     "version": "2.2.1"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.1_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_arm64.zip",
+     "version": "2.2.1"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.1_SHA256SUMS",
+   "version": "2.2.1"
+  },
+  "2.2.1+ent": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.1+ent_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_darwin_amd64.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.1+ent_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_darwin_arm64.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.1+ent_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_linux_386.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.1+ent_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_linux_amd64.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.1+ent_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_linux_arm64.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "ppc64le",
+     "filename": "vault_2.2.1+ent_linux_ppc64le.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_linux_ppc64le.zip",
+     "version": "2.2.1+ent"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_2.2.1+ent_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent/vault_2.2.1+ent_linux_s390x.zip",
+     "version": "2.2.1+ent"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.1+ent_SHA256SUMS",
+   "version": "2.2.1+ent"
+  },
+  "2.2.1+ent.hsm": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.1+ent.hsm_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent.hsm/vault_2.2.1+ent.hsm_linux_amd64.zip",
+     "version": "2.2.1+ent.hsm"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.1+ent.hsm_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent.hsm/vault_2.2.1+ent.hsm_linux_arm64.zip",
+     "version": "2.2.1+ent.hsm"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_2.2.1+ent.hsm_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.1+ent.hsm/vault_2.2.1+ent.hsm_linux_s390x.zip",
+     "version": "2.2.1+ent.hsm"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.1+ent.hsm_SHA256SUMS",
+   "version": "2.2.1+ent.hsm"
+  },
+  "2.2.2": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.2/vault_2.2.2_darwin_amd64.zip",
+     "version": "2.2.2"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.2/vault_2.2.2_darwin_arm64.zip",
+     "version": "2.2.2"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.2_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2/vault_2.2.2_linux_386.zip",
+     "version": "2.2.2"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2/vault_2.2.2_linux_amd64.zip",
+     "version": "2.2.2"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2/vault_2.2.2_linux_arm64.zip",
+     "version": "2.2.2"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.2_SHA256SUMS",
+   "version": "2.2.2"
+  },
+  "2.2.2+ent": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2+ent_darwin_amd64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_darwin_amd64.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2+ent_darwin_arm64.zip",
+     "name": "vault",
+     "os": "darwin",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_darwin_arm64.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "386",
+     "filename": "vault_2.2.2+ent_linux_386.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_linux_386.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2+ent_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_linux_amd64.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2+ent_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_linux_arm64.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "ppc64le",
+     "filename": "vault_2.2.2+ent_linux_ppc64le.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_linux_ppc64le.zip",
+     "version": "2.2.2+ent"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_2.2.2+ent_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent/vault_2.2.2+ent_linux_s390x.zip",
+     "version": "2.2.2+ent"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.2+ent_SHA256SUMS",
+   "version": "2.2.2+ent"
+  },
+  "2.2.2+ent.fips1403": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2+ent.fips1403_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent.fips1403/vault_2.2.2+ent.fips1403_linux_amd64.zip",
+     "version": "2.2.2+ent.fips1403"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2+ent.fips1403_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent.fips1403/vault_2.2.2+ent.fips1403_linux_arm64.zip",
+     "version": "2.2.2+ent.fips1403"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.2+ent.fips1403_SHA256SUMS",
+   "version": "2.2.2+ent.fips1403"
+  },
+  "2.2.2+ent.hsm": {
+   "builds": [
+    {
+     "arch": "amd64",
+     "filename": "vault_2.2.2+ent.hsm_linux_amd64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent.hsm/vault_2.2.2+ent.hsm_linux_amd64.zip",
+     "version": "2.2.2+ent.hsm"
+    },
+    {
+     "arch": "arm64",
+     "filename": "vault_2.2.2+ent.hsm_linux_arm64.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent.hsm/vault_2.2.2+ent.hsm_linux_arm64.zip",
+     "version": "2.2.2+ent.hsm"
+    },
+    {
+     "arch": "s390x",
+     "filename": "vault_2.2.2+ent.hsm_linux_s390x.zip",
+     "name": "vault",
+     "os": "linux",
+     "url": "https://releases.hashicorp.com/vault/2.2.2+ent.hsm/vault_2.2.2+ent.hsm_linux_s390x.zip",
+     "version": "2.2.2+ent.hsm"
+    }
+   ],
+   "name": "vault",
+   "shasums": "vault_2.2.2+ent.hsm_SHA256SUMS",
+   "version": "2.2.2+ent.hsm"
+  }
+ }
+}
