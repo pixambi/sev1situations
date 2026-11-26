@@ -25,6 +25,22 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await expect(page.getByRole("heading", { name: "Vault Sandbox", level: 2 })).toBeVisible();
   expect(leftovers()).not.toBe("");
 
+  // The Cluster tab describes what was deployed. The root token is masked until it is revealed.
+  await page.getByRole("tab", { name: "Cluster" }).click();
+  await expect(page.getByRole("heading", { name: "Primary cluster" })).toBeVisible();
+  await expect(page.getByText("http://127.0.0.1:", { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "node-1" })).toBeVisible();
+  await expect(page.getByText("running", { exact: true })).toBeVisible({ timeout: 60_000 });
+  expect(await page.locator("body").innerText()).not.toMatch(/hvs\.[A-Za-z0-9]/);
+  await page.getByRole("button", { name: "Show Root token" }).click();
+  await expect(page.getByText(/^hvs\./)).toBeVisible();
+
+  // A real node action: stop the node and start it again.
+  await page.getByRole("button", { name: "Stop node-1" }).click();
+  await expect(page.getByText("stopped", { exact: true })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: "Start node-1" }).click();
+  await expect(page.getByText("running", { exact: true })).toBeVisible({ timeout: 60_000 });
+
   // Another scenario cannot be started meanwhile.
   await page.getByRole("tab", { name: "Scenarios" }).click();
   await expect(page.getByText("A scenario is running")).toBeVisible();

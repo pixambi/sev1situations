@@ -6,12 +6,22 @@ import (
 	"sync"
 
 	"github.com/pixambi/sev1situations/internal/engine"
+	"github.com/pixambi/sev1situations/internal/product"
 )
 
+// Connection is the core once it is joined to the container runtime.
+type Connection struct {
+	// Engine runs the one run.
+	Engine *engine.Engine
+	// View describes a run's deployment for the Cluster tab. It may be nil.
+	View func(ctx context.Context, runID string) product.ClusterView
+	// Notices are sentences describing what start-up cleanup did.
+	Notices []string
+}
+
 // Connector joins the core to the container runtime and removes what an earlier
-// launch left behind. It returns the engine and sentences describing the cleanup.
-// It fails when the runtime cannot be reached.
-type Connector func(ctx context.Context) (*engine.Engine, []string, error)
+// launch left behind. It fails when the runtime cannot be reached.
+type Connector func(ctx context.Context) (*Connection, error)
 
 // EngineSource returns the engine, or an error that tells the instructor why there
 // is none yet.
@@ -25,9 +35,8 @@ type link struct {
 	connect Connector
 	emit    Emitter
 
-	mu      sync.Mutex
-	eng     *engine.Engine
-	notices []string
+	mu   sync.Mutex
+	conn *Connection
 }
 
 func newLink(ctx context.Context, connect Connector, emit Emitter) *link {
@@ -38,7 +47,17 @@ func newLink(ctx context.Context, connect Connector, emit Emitter) *link {
 func (l *link) current() *engine.Engine {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.eng
+	if l.conn == nil {
+		return nil
+	}
+	return l.conn.Engine
+}
+
+// connection returns the connection, or nil if there is none yet.
+func (l *link) connection() *Connection {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.conn
 }
 
 // source is the EngineSource for the services.
@@ -53,16 +72,16 @@ func (l *link) source() (*engine.Engine, error) {
 func (l *link) ensure() PrereqStatus {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.eng != nil {
-		return PrereqStatus{Ready: true, Notices: l.notices}
+	if l.conn != nil {
+		return PrereqStatus{Ready: true, Notices: l.conn.Notices}
 	}
-	eng, notices, err := l.connect(l.ctx)
+	conn, err := l.connect(l.ctx)
 	if err != nil {
 		return PrereqStatus{Message: fmt.Sprintf("Podman is not ready: %v. Install Podman, then run \"podman machine init\" and \"podman machine start\", and press Retry.", err)}
 	}
-	l.eng, l.notices = eng, notices
-	go pumpEvents(l.ctx, eng, l.emit)
-	return PrereqStatus{Ready: true, Notices: notices}
+	l.conn = conn
+	go pumpEvents(l.ctx, conn.Engine, l.emit)
+	return PrereqStatus{Ready: true, Notices: conn.Notices}
 }
 
 // runActive reports whether a run exists, deploying or not.

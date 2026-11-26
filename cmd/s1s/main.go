@@ -12,7 +12,6 @@ import (
 
 	sev1situations "github.com/pixambi/sev1situations"
 	"github.com/pixambi/sev1situations/internal/app"
-	"github.com/pixambi/sev1situations/internal/engine"
 	"github.com/pixambi/sev1situations/internal/gui"
 	"github.com/pixambi/sev1situations/internal/scenario"
 )
@@ -49,12 +48,12 @@ func main() {
 		Versions:   app.Versions(products),
 		Instructor: store.Instructor,
 		Catalogue:  func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
-		Connect: func(ctx context.Context) (*engine.Engine, []string, error) {
+		Connect: func(ctx context.Context) (*gui.Connection, error) {
 			conn, err := app.Connect(ctx, opts, log, nil)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			return conn.Engine, conn.Startup.Notices(), nil
+			return &gui.Connection{Engine: conn.Engine, View: conn.Deployer.View, Notices: conn.Startup.Notices()}, nil
 		},
 	}
 	if err := gui.Run(sev1situations.Frontend, deps); err != nil {

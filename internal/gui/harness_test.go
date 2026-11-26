@@ -132,7 +132,11 @@ func (d deployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario.Scen
 		nodes[name] = primitive.Node{Name: name, Cluster: "primary", ContainerID: c.ID, IP: "10.89.1.2"}
 	}
 	progress("the cluster is healthy")
-	return engine.Deployment{Nodes: nodes, Actions: map[string][]engine.NodeAction{}, Creds: map[string]map[string]string{}}, nil
+	actions := map[string][]engine.NodeAction{}
+	for name := range nodes {
+		actions[name] = []engine.NodeAction{engine.ActionStop, engine.ActionStart, engine.ActionRemove, engine.ActionRevive}
+	}
+	return engine.Deployment{Nodes: nodes, Actions: actions, Creds: map[string]map[string]string{}}, nil
 }
 
 // emitted records what the services publish.

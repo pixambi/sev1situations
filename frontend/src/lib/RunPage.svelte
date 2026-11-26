@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Accordion, AccordionItem, Button, InlineLoading, InlineNotification, ProgressIndicator, ProgressStep, Select, SelectItem } from "carbon-components-svelte";
+  import { Accordion, AccordionItem, Button, InlineLoading, InlineNotification, ProgressIndicator, ProgressStep, Select, SelectItem, Tab, TabContent, Tabs } from "carbon-components-svelte";
   import { Continue, End, Retry, Rollback, RunAction, SaveNotes, SetRating, Verify } from "../../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js";
   import type { Snapshot } from "../../bindings/github.com/pixambi/sev1situations/internal/engine/models.js";
   import ConfirmModal from "./ConfirmModal.svelte";
   import RunHeader from "./RunHeader.svelte";
   import StepCard from "./StepCard.svelte";
+  import ClusterTab from "./ClusterTab.svelte";
 
   interface Props {
     snapshot: Snapshot;
@@ -76,52 +77,64 @@
     </InlineNotification>
     <p>Retry builds the environment again. End scenario removes whatever was created.</p>
   {:else}
-    {#if sandbox}
-      <InlineNotification lowContrast hideCloseButton kind="info" title="This is an open sandbox" subtitle="It has no steps. Explore, then end the scenario when you are done." />
-    {:else}
-      <ProgressIndicator spaceEqually preventChangeOnClick>
-        <ProgressStep complete label="Start" />
-        {#each steps as s (s.ID)}
-          <ProgressStep
-            complete={s.State === "complete"}
-            current={s.State === "active" || s.State === "applying" || s.State === "applied"}
-            disabled={s.State === "locked"}
-            label={s.Title}
-          />
-        {/each}
-      </ProgressIndicator>
+    <Tabs>
+      <Tab label="Steps" />
+      <Tab label="Cluster" />
+      <svelte:fragment slot="content">
+        <TabContent>
+            {#if sandbox}
+              <InlineNotification lowContrast hideCloseButton kind="info" title="This is an open sandbox" subtitle="It has no steps. Explore, then end the scenario when you are done." />
+            {:else}
+              <ProgressIndicator spaceEqually preventChangeOnClick>
+                <ProgressStep complete label="Start" />
+                {#each steps as s (s.ID)}
+                  <ProgressStep
+                    complete={s.State === "complete"}
+                    current={s.State === "active" || s.State === "applying" || s.State === "applied"}
+                    disabled={s.State === "locked"}
+                    label={s.Title}
+                  />
+                {/each}
+              </ProgressIndicator>
 
-      {#if finished}
-        <InlineNotification lowContrast hideCloseButton kind="success" title="Every step is complete" subtitle="End the scenario to finish." />
-      {/if}
+              {#if finished}
+                <InlineNotification lowContrast hideCloseButton kind="success" title="Every step is complete" subtitle="End the scenario to finish." />
+              {/if}
 
-      {#if active}
-        {#key active.ID}
-          <StepCard
-            step={active}
-            {busy}
-            onapply={() => perform("applying", () => RunAction(active.ID))}
-            onverify={() => perform("verifying", () => Verify(active.ID))}
-            oncontinue={() => perform("continuing", () => Continue(active.ID))}
-            onnotes={(text) => perform("saving", () => SaveNotes(active.ID, text))}
-            onrating={(n) => perform("saving", () => SetRating(active.ID, n))}
-          />
-        {/key}
-      {/if}
+              {#if active}
+                {#key active.ID}
+                  <StepCard
+                    step={active}
+                    {busy}
+                    onapply={() => perform("applying", () => RunAction(active.ID))}
+                    onverify={() => perform("verifying", () => Verify(active.ID))}
+                    oncontinue={() => perform("continuing", () => Continue(active.ID))}
+                    onnotes={(text) => perform("saving", () => SaveNotes(active.ID, text))}
+                    onrating={(n) => perform("saving", () => SetRating(active.ID, n))}
+                  />
+                {/key}
+              {/if}
 
-      {#if done.length > 0}
-        <h3>Completed steps</h3>
-        <Accordion>
-          {#each done as s (s.ID)}
-            <AccordionItem title={s.Title}>
-              <p>{s.Last?.Message ?? "Complete"}</p>
-              {#if s.Notes}<p><strong>Notes:</strong> {s.Notes}</p>{/if}
-              {#if s.Rating}<p><strong>Rating:</strong> {s.Rating} of 5</p>{/if}
-            </AccordionItem>
-          {/each}
-        </Accordion>
-      {/if}
-    {/if}
+              {#if done.length > 0}
+                <h3>Completed steps</h3>
+                <Accordion>
+                  {#each done as s (s.ID)}
+                    <AccordionItem title={s.Title}>
+                      <p>{s.Last?.Message ?? "Complete"}</p>
+                      {#if s.Notes}<p><strong>Notes:</strong> {s.Notes}</p>{/if}
+                      {#if s.Rating}<p><strong>Rating:</strong> {s.Rating} of 5</p>{/if}
+                    </AccordionItem>
+                  {/each}
+                </Accordion>
+              {/if}
+            {/if}
+        </TabContent>
+        <TabContent>
+          <!-- The tab reads the deployment again whenever the run changes, which covers a node action finishing. -->
+          <ClusterTab version={(snapshot.Events ?? []).length} />
+        </TabContent>
+      </svelte:fragment>
+    </Tabs>
   {/if}
 </section>
 

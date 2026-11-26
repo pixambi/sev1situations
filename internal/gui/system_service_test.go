@@ -12,9 +12,9 @@ import (
 func TestPrereqConnectsAndPublishesTheState(t *testing.T) {
 	b := newBackend(t, nil)
 	calls := 0
-	l := newLink(context.Background(), func(context.Context) (*engine.Engine, []string, error) {
+	l := newLink(context.Background(), func(context.Context) (*Connection, error) {
 		calls++
-		return b.eng, []string{"Removed what run abc left behind when the application last closed."}, nil
+		return &Connection{Engine: b.eng, Notices: []string{"Removed what run abc left behind when the application last closed."}}, nil
 	}, b.out.emit)
 	svc := NewSystemService(l, b.out.emit)
 
@@ -33,11 +33,11 @@ func TestPrereqConnectsAndPublishesTheState(t *testing.T) {
 func TestPrereqExplainsAFailureAndRetryWorks(t *testing.T) {
 	b := newBackend(t, nil)
 	down := true
-	l := newLink(context.Background(), func(context.Context) (*engine.Engine, []string, error) {
+	l := newLink(context.Background(), func(context.Context) (*Connection, error) {
 		if down {
-			return nil, nil, errors.New("no Podman machine is running")
+			return nil, errors.New("no Podman machine is running")
 		}
-		return b.eng, nil, nil
+		return &Connection{Engine: b.eng}, nil
 	}, b.out.emit)
 	svc := NewSystemService(l, b.out.emit)
 
@@ -69,7 +69,7 @@ func TestEndRunIsSafeWithNoConnectionAndEndsARunningScenario(t *testing.T) {
 	none.endRun() // no panic
 
 	b := newBackend(t, map[string]string{"s": scenarioYAML("demo", "Demo", "vault", true)})
-	l := newLink(context.Background(), func(context.Context) (*engine.Engine, []string, error) { return b.eng, nil, nil }, b.out.emit)
+	l := newLink(context.Background(), func(context.Context) (*Connection, error) { return &Connection{Engine: b.eng}, nil }, b.out.emit)
 	l.endRun() // not connected
 
 	l.ensure()
