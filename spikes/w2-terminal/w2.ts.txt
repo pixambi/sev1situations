@@ -1,0 +1,284 @@
+import { init, Terminal, FitAddon, Ghostty } from "ghostty-web";
+import wasmUrl from "ghostty-web/ghostty-vt.wasm?url";
+import { Events } from "@wailsio/runtime";
+
+const mode = new URLSearchParams(location.search).get("mode") ?? "strict-asset";
+const result: Record<string, unknown> = { mode, violations: [] as string[] };
+const violations = result.violations as string[];
+document.addEventListener("securitypolicyviolation", (e) => {
+  violations.push(`${e.violatedDirective} blocked ${e.blockedURI.slice(0, 60)}`);
+});
+
+const done = (stage: string, extra: Record<string, unknown> = {}) => {
+  Object.assign(result, extra, { stage });
+  Events.Emit("w2:result", JSON.stringify(result));
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Wait for one event with a given name.
+const once = <T = any>(name: string, timeoutMs = 60000): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const t = setTimeout(() => { off(); reject(new Error("timed out waiting for " + name)); }, timeoutMs);
+    const off = Events.On(name, (ev: any) => { clearTimeout(t); off(); resolve(ev.data); });
+  });
+
+function lineText(term: any, y: number): string {
+  try {
+    const l = term.buffer?.active?.getLine(y);
+    if (l?.translateToString) return l.translateToString(true);
+  } catch { /* try the internal path */ }
+  try {
+    const cells = term.wasmTerm?.getLine(y) ?? [];
+    return cells.map((c: any) => (c.codepoint ? String.fromCodePoint(c.codepoint) : " ")).join("").trimEnd();
+  } catch { return "<unreadable>"; }
+}
+
+async function freshTerm() {
+  const ghostty = await Ghostty.load(wasmUrl);
+  const t: any = new Terminal({ cols: 80, rows: 24, ghostty });
+  t.open(document.getElementById("term")!);
+  return t;
+}
+
+async function run() {
+  const t0 = performance.now();
+  let term: any;
+  try {
+    if (mode === "strict-asset" || mode === "strictest") {
+      const ghostty = await Ghostty.load(wasmUrl);
+      term = new Terminal({ cols: 80, rows: 24, ghostty });
+    } else {
+      await init();
+      term = new Terminal({ cols: 80, rows: 24 });
+    }
+  } catch (e: any) {
+    return done("init", { ok: false, error: String(e?.message ?? e) });
+  }
+  const el = document.getElementById("term")!;
+  term.open(el);
+  Object.assign(result, { initMs: Math.round(performance.now() - t0), ok: true, wasmUrl: mode !== "strict-default" && mode !== "data-default" ? wasmUrl : "(embedded data: URL)" });
+
+  // Correctness: colours, cursor movement and wide characters land in the right cells.
+  term.write("\x1b[31mred\x1b[0m hello\r\n日本語 ✓\r\nline3\x1b[1A\x1b[2Cx");
+  await sleep(50);
+  term.write("\x1b[2J\x1b[H\x1b[1;32mSev1 Situations\x1b[0m terminal check\r\n\x1b[31mred\x1b[32m green\x1b[34m blue\x1b[0m  \x1b[7minverse\x1b[0m  \x1b[4munderline\x1b[0m\r\n\u65e5\u672c\u8a9e wide, \u00e9 accent, box: \u2554\u2550\u2557\r\n$ vault status\r\n");
+  await sleep(400);
+  // Did it actually paint? Count the pixels on the canvas that are not the background, and how
+  // many distinct colours there are, once quantised. Red, green, blue and inverse text were written.
+  const canvas = el.querySelector("canvas") as HTMLCanvasElement | null;
+  if (!canvas) { result.canvas = "no canvas element"; }
+  else {
+    const c2 = canvas.getContext("2d");
+    if (!c2) { result.canvas = "no 2d context"; }
+    else {
+      const w = canvas.width, h = canvas.height;
+      const px = c2.getImageData(0, 0, w, h).data;
+      const bg = [px[0], px[1], px[2]];
+      let painted = 0; const colours = new Set<string>(); let red = 0, green = 0, blue = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        const r = px[i], g = px[i + 1], b = px[i + 2];
+        if (Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) > 60) {
+          painted++; colours.add(`${r >> 5},${g >> 5},${b >> 5}`);
+          if (r > 150 && g < 110 && b < 110) red++;
+          if (g > 150 && r < 110 && b < 110) green++;
+          if (b > 150 && r < 110 && g < 150) blue++;
+        }
+      }
+      result.canvas = { size: `${w}x${h}`, background: bg.join(","), paintedPixels: painted, distinctColours: colours.size, redish: red, greenish: green, blueish: blue };
+    }
+  }
+  result.line0 = lineText(term, 0);
+  result.line1 = lineText(term, 1);
+  result.line2 = lineText(term, 2);
+  result.apiBuffer = typeof term.buffer?.active?.getLine === "function";
+
+  // Typing: input() with wasUserInput must produce onData for the Go side to forward.
+  const typed: string[] = [];
+  term.onData((d: string) => typed.push(d));
+  term.input("ls\r", true);
+  await sleep(20);
+  result.onDataGot = JSON.stringify(typed);
+
+  // Resize and fit.
+  term.resize(100, 30);
+  result.resized = `${term.cols}x${term.rows}`;
+  try {
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    fit.fit();
+    result.fitted = `${term.cols}x${term.rows}`;
+  } catch (e: any) { result.fitted = "error: " + String(e?.message ?? e); }
+
+  // Latency: type a character, Go echoes it back. 200 round trips over Wails events.
+  const rtts: number[] = [];
+  const echoes = new Map<number, (n: number) => void>();
+  Events.On("term:echo", (ev: any) => echoes.get(ev.data.i)?.(performance.now()));
+  for (let i = 0; i < 200; i++) {
+    const start = performance.now();
+    const back = new Promise<number>((r) => echoes.set(i, r));
+    Events.Emit("term:in", { i });
+    rtts.push((await back) - start);
+  }
+  rtts.sort((a, b) => a - b);
+  result.latencyMs = { p50: +rtts[100].toFixed(2), p95: +rtts[190].toFixed(2), max: +rtts[199].toFixed(2) };
+
+  // Throughput: Go streams total bytes in chunks as fast as it can. Measure how long until it is
+  // all written into the terminal, and the longest gap between animation frames meanwhile.
+  const runs: Record<string, unknown>[] = [];
+  for (const cfg of [
+    { chunk: 1024, b64: false }, { chunk: 16384, b64: false }, { chunk: 65536, b64: false },
+    { chunk: 16384, b64: true }, { chunk: 65536, b64: true },
+  ]) {
+    const total = 4 * 1024 * 1024;
+    const term: any = await freshTerm(); // a new terminal for each run, so one run cannot affect the next
+    const expected = Math.ceil(total / cfg.chunk);
+    let handlerErrors = 0, firstHandlerError = "";
+    let received = 0, bytes = 0, firstAt = 0, lastFrame = performance.now(), maxGap = 0, raf = 0;
+    const tick = () => { const n = performance.now(); maxGap = Math.max(maxGap, n - lastFrame); lastFrame = n; raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+
+    const finished = new Promise<void>((resolve) => {
+      const off = Events.On("term:out", (ev: any) => {
+        if (!firstAt) firstAt = performance.now();
+        const d = ev.data.d as string;
+        try {
+          if (cfg.b64) {
+            const bin = atob(d);
+            const u8 = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            term.write(u8); bytes += u8.length;
+          } else { term.write(d); bytes += d.length; }
+        } catch (e: any) { handlerErrors++; if (!firstHandlerError) firstHandlerError = String(e?.message ?? e).slice(0, 200); }
+        if (++received === expected) { off(); resolve(); }
+      });
+    });
+    Events.Emit("w2:stream", { chunk: cfg.chunk, total, b64: cfg.b64 });
+    await Promise.race([finished, sleep(8000)]);
+    cancelAnimationFrame(raf);
+    const ms = performance.now() - firstAt;
+    runs.push({ ...cfg, events: received, expected, bytes, ms: Math.round(ms), MBps: +(bytes / 1048576 / (ms / 1000)).toFixed(2), maxFrameGapMs: Math.round(maxGap), handlerErrors, firstHandlerError });
+    await sleep(200);
+  }
+  result.throughput = runs;
+
+  // Robustness: what random binary bytes (as from `cat /bin/ls`) do to the terminal, and whether
+  // reset() brings it back.
+  const robust: Record<string, unknown> = {};
+  const random = (n: number) => { const u = new Uint8Array(n); for (let i = 0; i < n; i += 65536) crypto.getRandomValues(u.subarray(i, Math.min(n, i + 65536))); return u; };
+  let firstError = "", errorCount = 0, wrote = 0;
+  for (let i = 0; i < 64; i++) {
+    try { term.write(random(4096)); wrote++; } catch (e: any) { errorCount++; if (!firstError) firstError = String(e?.stack ?? e).slice(0, 400); }
+  }
+  robust.randomWrites = { attempted: 64, ok: wrote, errors: errorCount, firstError };
+  try { term.write("\r\nAFTER-BINARY\r\n"); await sleep(30); robust.aliveAfterBinary = "wrote without throwing"; } catch (e: any) { robust.aliveAfterBinary = "threw: " + String(e?.message ?? e).slice(0, 200); }
+  try { term.reset(); term.write("AFTER-RESET"); await sleep(30); robust.afterReset = lineText(term, 0); } catch (e: any) { robust.afterReset = "threw: " + String(e?.message ?? e).slice(0, 200); }
+  result.robust = robust;
+
+  done("complete");
+}
+
+// Probe: which input makes the terminal trap, how often, and does a fresh instance recover?
+async function probe() {
+  const freshTerm = async () => {
+    const ghostty = await Ghostty.load(wasmUrl);
+    const t: any = new Terminal({ cols: 80, rows: 24, ghostty });
+    t.open(document.getElementById("term")!);
+    return t;
+  };
+  const rnd = (n: number, lo: number, hi: number) => { const u = new Uint8Array(n); crypto.getRandomValues(u); for (let i = 0; i < n; i++) u[i] = lo + (u[i] % (hi - lo + 1)); return u; };
+  const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)];
+  const soup = (n: number, parts: string[]) => { let s = ""; while (s.length < n) s += pick(parts); return s; };
+  const gens: Record<string, () => string | Uint8Array> = {
+    "printable ascii": () => rnd(4096, 0x20, 0x7e),
+    "C0 controls only": () => rnd(4096, 0x00, 0x1f),
+    "high bytes 0x80-0xff": () => rnd(4096, 0x80, 0xff),
+    "all bytes": () => rnd(4096, 0, 255),
+    "CSI soup": () => soup(4096, ["\x1b[", "1", "2", "9", ";", "m", "H", "J", "K", "A", "B", "C", "D", "r", "t", "?", "h", "l", "x"]),
+    "OSC soup": () => soup(4096, ["\x1b]", "0;", "title", "\x07", "\x1b\\\\", "8;;", "http://x"]),
+    "DCS/APC soup": () => soup(4096, ["\x1bP", "\x1b_", "q", "1;2", "data", "\x1b\\\\"]),
+  };
+  const out: Record<string, unknown>[] = [];
+  for (const [name, gen] of Object.entries(gens)) {
+    let trapped = 0; const at: number[] = []; let sample = "";
+    for (let trial = 0; trial < 6; trial++) {
+      const t = await freshTerm();
+      let i = 0;
+      try { for (; i < 64; i++) t.write(gen()); } catch (e: any) { trapped++; at.push(i); sample ||= String(e?.message ?? e).slice(0, 80); }
+      try { t.dispose(); } catch { /* a trapped instance may not dispose cleanly */ }
+    }
+    out.push({ input: name, trials: 6, trapped, firstTrapAtWrite: at, sample });
+  }
+  result.probe = out;
+
+  // Which kind of valid Unicode traps? Each is valid text, written 256 times in 4 KB pieces.
+  const cp = (lo: number, hi: number, n = 1500) => { let t = ""; for (let i = 0; i < n; i++) t += String.fromCodePoint(lo + Math.floor(Math.random() * (hi - lo + 1))); return t; };
+  const valid: Record<string, () => string> = {
+    "latin-1 letters (U+00C0-00FF)": () => cp(0xc0, 0xff, 4000),
+    "greek and cyrillic (U+0391-044F)": () => cp(0x391, 0x44f, 4000),
+    "CJK, wide (U+4E00-9FFF)": () => cp(0x4e00, 0x9fff, 2000),
+    "replacement char U+FFFD only": () => "\ufffd".repeat(4000),
+    "combining marks after one letter": () => "a" + cp(0x300, 0x36f, 4000),
+    "combining marks, short clusters": () => { let t = ""; for (let i = 0; i < 1000; i++) t += "e" + cp(0x300, 0x36f, 2); return t; },
+    "emoji with ZWJ": () => "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}".repeat(300),
+    "random BMP (U+0080-FFFF, no surrogates)": () => { let t = ""; for (let i = 0; i < 1500; i++) { let c = 0x80 + Math.floor(Math.random() * (0xffff - 0x80)); if (c >= 0xd800 && c <= 0xdfff) c = 0x41; t += String.fromCodePoint(c); } return t; },
+  };
+  const validOut: Record<string, unknown>[] = [];
+  for (const [name, gen] of Object.entries(valid)) {
+    let trapped = 0; const at: number[] = [];
+    for (let trial = 0; trial < 4; trial++) {
+      const t = await freshTerm(); let i = 0;
+      try { for (; i < 256; i++) t.write(gen()); } catch { trapped++; at.push(i); }
+      try { t.dispose(); } catch { /* ignore */ }
+    }
+    validOut.push({ input: name, trials: 4, trapped, firstTrapAtWrite: at });
+  }
+  result.validUnicode = validOut;
+
+  // Mitigation: catch the trap, build a fresh terminal instance, and retry the chunk.
+  {
+    let term: any = await freshTerm();
+    const rebuilds: number[] = []; let lost = 0; let chunks = 0;
+    const guarded = async (data: string) => {
+      chunks++;
+      try { term.write(data); return; } catch { /* the instance is dead */ }
+      const t0 = performance.now();
+      try { term.dispose(); } catch { /* ignore */ }
+      term = await freshTerm();
+      rebuilds.push(Math.round(performance.now() - t0));
+      try { term.write(data); } catch { lost++; } // a fresh instance should take the same chunk
+    };
+    const zwj = "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}".repeat(300);
+    for (let i = 0; i < 200; i++) await guarded(zwj);
+    term.write("\r\nGUARD-ALIVE");
+    await sleep(30);
+    result.guard = { chunks, rebuilds: rebuilds.length, rebuildMs: rebuilds, chunksLost: lost, lastLines: [lineText(term, 0), lineText(term, 1)].map((x: string) => x.slice(-30)) };
+  }
+
+  // Mitigation: a streaming UTF-8 decoder in front of write() turns invalid bytes into U+FFFD.
+  const mitigated: Record<string, unknown>[] = [];
+  for (const [name, lo, hi] of [["high bytes 0x80-0xff", 0x80, 0xff], ["all bytes", 0, 255]] as const) {
+    let trapped = 0; let bytes = 0; const start = performance.now();
+    for (let trial = 0; trial < 6; trial++) {
+      const t = await freshTerm();
+      const dec = new TextDecoder("utf-8", { fatal: false });
+      try { for (let i = 0; i < 256; i++) { const u = rnd(4096, lo, hi); bytes += u.length; t.write(dec.decode(u, { stream: true })); } } catch { trapped++; }
+      try { t.dispose(); } catch { /* ignore */ }
+    }
+    mitigated.push({ input: name, trials: 6, writesPerTrial: 256, trapped, MBps: +(bytes / 1048576 / ((performance.now() - start) / 1000)).toFixed(2) });
+  }
+  result.mitigated = mitigated;
+
+  // Recovery: trap one terminal, then make another with a new instance and see if it works.
+  const a = await freshTerm();
+  let trapped = false;
+  try { for (let i = 0; i < 200; i++) a.write(rnd(4096, 0, 255)); } catch { trapped = true; }
+  const b = await freshTerm();
+  let bOk = true; let bText = "";
+  try { b.write("recovered"); await sleep(30); bText = lineText(b, 0); } catch (e: any) { bOk = false; bText = String(e?.message ?? e); }
+  result.recovery = { firstTerminalTrapped: trapped, freshInstanceWorks: bOk, freshInstanceLine0: bText };
+  done("complete");
+}
+
+Events.Emit("w2:hello", mode);
+(mode === "probe" ? probe() : run()).catch((e) => done("crashed", { ok: false, error: String(e?.stack ?? e) }));

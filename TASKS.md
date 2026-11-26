@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2), M2, M3 and M4 are done. M5, the Wails shell and frontend, is next, and it starts with spike W2 (the terminal). Done tasks are marked `[x]`.
+**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is next. Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -42,7 +42,7 @@ These affect early tasks. Defaults are shown so work is not blocked.
 | # | Decision | Default |
 |---|---|---|
 | D1 | Default Vault and Boundary versions for scenarios | Newest available from `releases.hashicorp.com` at deploy time, selectable in the Start form. |
-| D2 | Terminal transport | Wails events (R-TERM-2). Fallback: a loopback WebSocket with a per-launch token. Settled in spike W2. |
+| D2 | Terminal transport | Wails events (R-TERM-2). Settled in spike W2: events carry terminal traffic with room to spare, so the WebSocket fallback is not needed. |
 | D3 | YAML library | `go.yaml.in/yaml/v4` (pure Go, strict decoding). Confirmed in spike S4. |
 | D4 | Frontend stack | Svelte 5, TypeScript, Vite, `carbon-components-svelte`. No SvelteKit. Confirmed in spike W3, with self-hosted fonts. |
 | D5 | Where app data lives | `~/Library/Application Support/Sev1Situations/` with `reports/`, `scenarios/`, `cache/binaries/` and `settings.json`. |
@@ -81,7 +81,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | S4 | [x] **YAML library** | Which pure-Go YAML library is maintained, strict (unknown fields rejected) and gives line numbers in errors? | S | Library chosen and justified for `DEPENDENCIES.md`. |
 | S7 | [x] **Release listing and verification** | How do we list versions and verify `SHA256SUMS` from `releases.hashicorp.com`? What are the file names for `+ent` and `+ent.hsm`? | S | A program lists versions for Vault and Boundary, downloads one, and verifies the checksum. |
 | W1 | [x] **Wails v3 scaffold** | Which template gives Svelte 5 and TypeScript? Does the root `embed.go` layout work with `cmd/s1s`? Does Wails offer single-instance behaviour (R-APP-8)? Can the same executable run CLI subcommands headless? Does `wails3 generate bindings` produce usable types for our service shapes? GoReleaser or a plain workflow for the bundle? | M | A throwaway app opens a window with a Svelte page that calls a Go service and receives an event. Findings recorded for 3.8 and Section 10. |
-| W2 | **In-app terminal** | Does ghostty-web run in the macOS system webview (WKWebView) under a strict CSP? Can Wails events carry interactive terminal throughput (typing, `cat` of a large file, resize)? If not, does a token-guarded loopback WebSocket work? | M | A window shows a working, resizable terminal into a container. Findings recorded for R-TERM-1 to R-TERM-7. |
+| W2 | [x] **In-app terminal** | Does ghostty-web run in the macOS system webview (WKWebView) under a strict CSP? Can Wails events carry interactive terminal throughput (typing, `cat` of a large file, resize)? If not, does a token-guarded loopback WebSocket work? | M | A window shows a working, resizable terminal into a container. Findings recorded for R-TERM-1 to R-TERM-7. |
 | W3 | [x] **Carbon in Svelte** | Does the current `carbon-components-svelte` release work with Svelte 5 and Vite for every component in 6.5 (header, side nav, tabs, tiles, data table, modal, code snippet, progress indicator)? Do light and dark themes switch? Use the Carbon MCP. | M | A page with those components renders in both themes, with no console errors and a clean axe audit. |
 | W4 | [x] **Playwright against Wails** | Can Playwright drive the Wails dev server with the fake runtime selected? How are Wails runtime calls and events reached from a browser, and what does the suite need mocked? | M | One Playwright test starts the app in fake-runtime mode, clicks through a service call and sees an event. |
 

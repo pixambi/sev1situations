@@ -1,0 +1,90 @@
+package gui
+
+import (
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+)
+
+// Spike W2 only. Not part of the product.
+
+var cspByMode = map[string]string{
+	"strict-default": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'",
+	"data-default":   "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' data:",
+	"probe":          "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'",
+	"strictest":      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self'",
+	"strict-asset":   "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'",
+}
+
+func w2Mode() string { return os.Getenv("S1S_W2") }
+
+func w2Middleware() application.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Security-Policy", cspByMode[w2Mode()])
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func w2Setup(app *application.App) {
+	done := make(chan struct{})
+	app.Event.On("w2:hello", func(e *application.CustomEvent) { fmt.Println("W2 page loaded in mode", e.Data) })
+
+	app.Event.On("w2:result", func(e *application.CustomEvent) {
+		fmt.Printf("W2RESULT %v\n", e.Data)
+		select {
+		case <-done:
+		default:
+			close(done)
+			app.Quit()
+		}
+	})
+
+	// Typing: echo each input back immediately.
+	app.Event.On("term:in", func(e *application.CustomEvent) {
+		if m, ok := e.Data.(map[string]any); ok {
+			app.Event.Emit("term:echo", map[string]any{"i": m["i"]})
+		}
+	})
+
+	// Output: stream total bytes in chunks as fast as possible.
+	app.Event.On("w2:stream", func(e *application.CustomEvent) {
+		m, _ := e.Data.(map[string]any)
+		chunk, total, b64 := int(m["chunk"].(float64)), int(m["total"].(float64)), m["b64"].(bool)
+		go func() {
+			start := time.Now()
+			line := strings.Repeat("0123456789abcdefghijklmnopqrstuvwxyz ", 3) + "\r\n"
+			for sent := 0; sent < total; sent += chunk {
+				n := chunk
+				if total-sent < n {
+					n = total - sent
+				}
+				var payload string
+				if b64 {
+					// Printable text, base64 encoded, so the cost of the encoding is measured apart
+					// from what random control bytes do to a terminal.
+					payload = base64.StdEncoding.EncodeToString([]byte(strings.Repeat(line, n/len(line)+1)[:n]))
+				} else {
+					payload = strings.Repeat(line, n/len(line)+1)[:n]
+				}
+				app.Event.Emit("term:out", map[string]any{"d": payload})
+			}
+			fmt.Printf("W2 go emitted %d bytes in chunks of %d (b64=%v) in %s\n", total, chunk, b64, time.Since(start).Round(time.Millisecond))
+		}()
+	})
+
+	go func() {
+		select {
+		case <-done:
+		case <-time.After(150 * time.Second):
+			fmt.Println("W2TIMEOUT")
+			app.Quit()
+		}
+	}()
+}

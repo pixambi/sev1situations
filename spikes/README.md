@@ -11,7 +11,7 @@ Spikes with a result are linked in the table.
 | S4 | YAML library | Done: go ([result](S4-yaml-library.md)) |
 | S7 | Release listing and verification | Done: go ([result](S7-release-listing.md)) |
 | W1 | Wails v3 scaffold | Done: go with changes ([result](W1-wails-scaffold.md)) |
-| W2 | In-app terminal | Not started |
+| W2 | In-app terminal | Done: go with changes ([result](W2-terminal.md)) |
 | W3 | Carbon in Svelte | Done: go with changes ([result](W3-carbon-svelte.md)) |
 | W4 | Playwright against Wails | Done: go with changes ([result](W4-playwright-wails.md)) |
 
