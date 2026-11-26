@@ -125,6 +125,8 @@ func TestValidateRules(t *testing.T) {
 		{"cluster and service share a name", strings.Replace(worked, "name: postgres", "name: primary", 1), nil, "topology.services[0].name", "used by another", "name: primary", 2},
 		{"cluster with no nodes", strings.Replace(worked, "nodes: 3\n      storage", "nodes: 0\n      storage", 1), nil, "topology.clusters[0].nodes", "at least 1", "nodes: 0", 0},
 		{"cluster with an unknown product", strings.Replace(worked, "      product: vault\n      nodes", "      product: nomad\n      nodes", 1), nil, "topology.clusters[0].product", "not a known product", "product: nomad", 0},
+		{"nodesFrom naming a parameter that does not exist", strings.Replace(worked, "      nodes: 3\n      storage", "      nodesFrom: count\n      storage", 1), nil, "topology.clusters[0].nodesFrom", "not an int parameter", "nodesFrom: count", 0},
+		{"nodesFrom naming a parameter that is not an int", strings.Replace(worked, "      nodes: 3\n      storage", "      nodesFrom: version\n      storage", 1), nil, "topology.clusters[0].nodesFrom", "not an int parameter", "nodesFrom: version", 0},
 		{"service without a type", strings.Replace(worked, "      type: postgres\n", "", 1), nil, "topology.services[0].type", "is required", "- name: postgres", 0},
 
 		// Steps.

@@ -188,3 +188,34 @@ func TestRenderArgsDescendsIntoListsAndMaps(t *testing.T) {
 		t.Errorf("error = %v, want it to say which argument and item failed", err)
 	}
 }
+
+func TestAClusterSizeCanComeFromAParameter(t *testing.T) {
+	three, nine := 3, 9
+	sc := &Scenario{
+		Parameters: []Parameter{{ID: "nodes", Type: ParamInt, Max: &nine, Min: &three}},
+		Topology:   Topology{Clusters: []Cluster{{Name: "primary", NodesFrom: "nodes", Nodes: 1}}},
+	}
+	c := sc.Topology.Clusters[0]
+
+	for _, tt := range []struct {
+		params map[string]any
+		want   int
+	}{
+		{map[string]any{"nodes": 5}, 5},
+		{map[string]any{"nodes": int64(7)}, 7},
+		{map[string]any{"nodes": 4.0}, 4},
+		{map[string]any{}, 1}, // no value: the fixed number is the fallback
+	} {
+		if got := c.NodeCount(tt.params); got != tt.want {
+			t.Errorf("NodeCount(%v) = %d, want %d", tt.params, got, tt.want)
+		}
+	}
+	if got := (Cluster{Nodes: 4}).NodeCount(map[string]any{"nodes": 9}); got != 4 {
+		t.Errorf("a cluster with no nodesFrom ignores the parameters, got %d", got)
+	}
+
+	// Templates may name any node the instructor's choice could create.
+	if names := sc.NodeNames(); len(names) != 9 || names[8] != "node-9" {
+		t.Errorf("NodeNames = %v, want node-1 to node-9", names)
+	}
+}

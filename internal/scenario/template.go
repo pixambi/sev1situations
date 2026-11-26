@@ -67,7 +67,7 @@ type Names struct {
 func (s *Scenario) NodeNames() []string {
 	var out []string
 	for i, c := range s.Topology.Clusters {
-		for n := 1; n <= c.Nodes; n++ {
+		for n := 1; n <= s.mostNodes(c); n++ {
 			if i == 0 {
 				out = append(out, fmt.Sprintf("node-%d", n))
 			} else {
@@ -79,6 +79,19 @@ func (s *Scenario) NodeNames() []string {
 		out = append(out, sv.Name+"-node-1")
 	}
 	return out
+}
+
+// mostNodes is the largest number of nodes a cluster can have, so a template may
+// name any node the instructor's choice could create.
+func (s *Scenario) mostNodes(c Cluster) int {
+	if c.NodesFrom != "" {
+		for _, p := range s.Parameters {
+			if p.ID == c.NodesFrom && p.Max != nil {
+				return *p.Max
+			}
+		}
+	}
+	return c.Nodes
 }
 
 // TemplateNames returns the names this scenario's templates may use.

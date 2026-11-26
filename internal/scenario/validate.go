@@ -257,7 +257,11 @@ func (v *validator) topology() {
 		name(f+".name", c.Name)
 		v.required(f+".product", c.Product)
 		v.knownProduct(f+".product", c.Product)
-		if c.Nodes < 1 {
+		if c.NodesFrom != "" {
+			if !v.declaresIntParam(c.NodesFrom) {
+				v.add(f+".nodesFrom", "%q is not an int parameter of this scenario", c.NodesFrom)
+			}
+		} else if c.Nodes < 1 {
 			v.add(f+".nodes", "%d must be at least 1", c.Nodes)
 		}
 	}
@@ -266,6 +270,16 @@ func (v *validator) topology() {
 		name(f+".name", sv.Name)
 		v.required(f+".type", sv.Type)
 	}
+}
+
+// declaresIntParam reports whether the scenario declares an int parameter with this ID.
+func (v *validator) declaresIntParam(id string) bool {
+	for _, p := range v.s.Parameters {
+		if p.ID == id && p.Type == ParamInt {
+			return true
+		}
+	}
+	return false
 }
 
 func (v *validator) steps() {

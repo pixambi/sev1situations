@@ -129,6 +129,9 @@ type Cluster struct {
 	Product string `yaml:"product"`
 	// Nodes is the number of nodes.
 	Nodes int `yaml:"nodes"`
+	// NodesFrom, if set, is the ID of an int parameter whose value is the number
+	// of nodes, in place of Nodes. A sandbox lets the instructor choose its size.
+	NodesFrom string `yaml:"nodesFrom"`
 	// Storage is the storage backend, for example raft.
 	Storage string `yaml:"storage"`
 }
@@ -192,4 +195,20 @@ func (s *Scenario) ReadFile(rel string) ([]byte, error) {
 // it is not known. The path uses dots and indexes, for example "steps[1].kind".
 func (s *Scenario) Line(fieldPath string) int {
 	return s.lines[fieldPath]
+}
+
+// NodeCount returns how many nodes a cluster has for the chosen parameters: the
+// value of the parameter named by NodesFrom if there is one, else Nodes.
+func (c Cluster) NodeCount(params map[string]any) int {
+	if c.NodesFrom != "" {
+		switch n := params[c.NodesFrom].(type) {
+		case int:
+			return n
+		case int64:
+			return int(n)
+		case float64:
+			return int(n)
+		}
+	}
+	return c.Nodes
 }
