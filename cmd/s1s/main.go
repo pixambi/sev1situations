@@ -37,8 +37,15 @@ func main() {
 
 	// With none it opens the window. The window opens even when Podman is not
 	// ready, and connects when the page asks (R-APP-2).
+	store, err := app.OpenSettings(opts)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "s1s:", err)
+		os.Exit(1)
+	}
+	opts.Settings = store
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	deps := &gui.Deps{
+		Licensed:  app.Licensed(store),
 		Catalogue: func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
 		Connect: func(ctx context.Context) (*engine.Engine, []string, error) {
 			conn, err := app.Connect(ctx, opts, log, nil)

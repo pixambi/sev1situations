@@ -23,6 +23,11 @@ test("opens on the application name without breaking the policy or touching the 
   await expect(page).toHaveTitle("Sev1 Situations");
   await expect(page.getByRole("banner")).toContainText("Situations");
 
+  // The built-in scenarios are listed, grouped under their product.
+  await expect(page.getByRole("heading", { name: "Scenarios", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vault", level: 3 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vault sandbox" })).toBeVisible();
+
   // The policy is on the page, and nothing the page does breaks it.
   const csp = response!.headers()["content-security-policy"];
   expect(csp).toContain("default-src 'self'");

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -49,9 +50,11 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 	if err != nil {
 		return nil, err
 	}
-	store, err := settings.Open(dataDir, products.SettingsFields()...)
-	if err != nil {
-		return nil, err
+	store := opts.Settings
+	if store == nil {
+		if store, err = OpenSettings(opts); err != nil {
+			return nil, err
+		}
 	}
 	rt, err := podman.New(ctx)
 	if err != nil {
@@ -95,3 +98,33 @@ func (r StartupReport) Notices() []string {
 // LoadCatalogue loads the built-in and the user's scenarios. The error lists the
 // scenarios that did not load, and the registry still holds the others.
 func LoadCatalogue(opts Options) (*scenario.Registry, error) { return loadCatalogue(opts) }
+
+// OpenSettings opens the saved settings with the registered products' fields. The
+// window opens it first so the catalogue can show which scenarios need a license
+// before Podman is reachable, and Connect then uses the same store.
+func OpenSettings(opts Options) (*settings.Store, error) {
+	products := opts.Products
+	if products == nil {
+		var err error
+		if products, err = DefaultProducts(); err != nil {
+			return nil, err
+		}
+	}
+	dir, err := DataDir()
+	if err != nil {
+		return nil, err
+	}
+	return settings.Open(dir, products.SettingsFields()...)
+}
+
+// Licensed returns a check of whether a license is saved for a product. Products
+// keep it in the setting "<product>.license" (R-SET-3).
+func Licensed(store *settings.Store) func(product string) bool {
+	return func(product string) bool {
+		v, ok, err := store.Get(product + ".license")
+		if errors.Is(err, settings.ErrUnknownField) {
+			return true // the product has no license setting, so it needs none
+		}
+		return err == nil && ok && v != ""
+	}
+}

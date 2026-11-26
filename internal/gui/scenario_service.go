@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/pixambi/sev1situations/internal/scenario"
@@ -12,13 +13,21 @@ import (
 // scenarios that did not load, and the others are still returned.
 type Catalogue func() (*scenario.Registry, error)
 
+// LicenseCheck reports whether a license is saved for a product. It does not need
+// the container runtime, so the catalogue can be browsed while Podman is down.
+type LicenseCheck func(product string) bool
+
 // ScenarioService lists the scenarios and describes one (3.4).
 type ScenarioService struct {
 	catalogue Catalogue
+	licensed  LicenseCheck
 }
 
-// NewScenarioService returns a service over the catalogue.
-func NewScenarioService(c Catalogue) *ScenarioService { return &ScenarioService{catalogue: c} }
+// NewScenarioService returns a service over the catalogue. licensed may be nil,
+// which treats every product as licensed.
+func NewScenarioService(c Catalogue, licensed LicenseCheck) *ScenarioService {
+	return &ScenarioService{catalogue: c, licensed: licensed}
+}
 
 // ScenarioSummary is one line of the catalogue.
 type ScenarioSummary struct {
@@ -32,6 +41,10 @@ type ScenarioSummary struct {
 	Tags             []string
 	// Source is "built-in" or "user".
 	Source string
+	// NeedsLicense is true when the scenario runs only on an enterprise edition and
+	// no license is saved for its product. A scenario that also runs on the
+	// community edition never needs one to be listed as startable (6.6).
+	NeedsLicense bool
 }
 
 // ScenarioList is the catalogue, plus a description of each scenario that could
@@ -71,7 +84,7 @@ func (s *ScenarioService) List() (ScenarioList, error) {
 	}
 	out := ScenarioList{Scenarios: []ScenarioSummary{}, Problems: problemLines(err)}
 	for _, e := range reg.List() {
-		out.Scenarios = append(out.Scenarios, summarise(e))
+		out.Scenarios = append(out.Scenarios, s.summarise(e))
 	}
 	return out, nil
 }
@@ -91,7 +104,7 @@ func (s *ScenarioService) Get(id string) (ScenarioDetail, error) {
 	}
 	sc := e.Scenario
 	d := ScenarioDetail{
-		ScenarioSummary: summarise(e),
+		ScenarioSummary: s.summarise(e),
 		Objectives:      nonNil(sc.Objectives),
 		Prerequisites:   nonNil(sc.Prerequisites),
 		Parameters:      []ParameterView{},
@@ -113,10 +126,12 @@ func (s *ScenarioService) Get(id string) (ScenarioDetail, error) {
 	return d, nil
 }
 
-func summarise(e scenario.Entry) ScenarioSummary {
+func (s *ScenarioService) summarise(e scenario.Entry) ScenarioSummary {
 	sc := e.Scenario
+	enterpriseOnly := len(sc.Editions) > 0 && !slices.Contains(sc.Editions, "community")
 	return ScenarioSummary{
-		ID: sc.ID, Name: sc.Name, Summary: sc.Summary, Product: sc.Product,
+		NeedsLicense: enterpriseOnly && s.licensed != nil && !s.licensed(sc.Product),
+		ID:           sc.ID, Name: sc.Name, Summary: sc.Summary, Product: sc.Product,
 		Editions: nonNil(sc.Editions), Difficulty: sc.Difficulty, EstimatedMinutes: sc.EstimatedMinutes,
 		Tags: nonNil(sc.Tags), Source: string(e.Source),
 	}

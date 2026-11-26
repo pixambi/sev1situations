@@ -15,6 +15,7 @@ import (
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/scenario"
+	"github.com/pixambi/sev1situations/internal/settings"
 )
 
 // Options are what the headless commands need from the program around them.
@@ -32,6 +33,9 @@ type Options struct {
 	// scenario may use, and their primitives are available to it (R-SCOPE-3).
 	// If nil, a temporary built-in list of names is used.
 	Products *product.Registry
+	// Settings is the saved settings, if the caller has opened them already.
+	// Connect opens them itself when it is nil.
+	Settings *settings.Store
 }
 
 // builtinRoot is the folder inside Options.Builtin that holds the scenarios.

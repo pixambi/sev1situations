@@ -12,7 +12,7 @@ func TestScenarioListIsOrderedAndDescribesEachScenario(t *testing.T) {
 		"a": scenarioYAML("alpha", "Alpha", "vault", false),
 		"c": scenarioYAML("gate", "Gate", "boundary", true),
 	})
-	list, err := NewScenarioService(b.catalogue).List()
+	list, err := NewScenarioService(b.catalogue, nil).List()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestScenarioListKeepsGoodScenariosAndReportsTheBrokenOne(t *testing.T) {
 		"good": scenarioYAML("good", "Good", "vault", false),
 		"bad":  "id: bad\nname: [not a string\n",
 	})
-	list, err := NewScenarioService(b.catalogue).List()
+	list, err := NewScenarioService(b.catalogue, nil).List()
 	if err != nil {
 		t.Fatalf("one broken scenario must not hide the rest: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestScenarioListKeepsGoodScenariosAndReportsTheBrokenOne(t *testing.T) {
 
 func TestAnEmptyCatalogueIsAnEmptyListNotNull(t *testing.T) {
 	b := newBackend(t, nil)
-	list, err := NewScenarioService(b.catalogue).List()
+	list, err := NewScenarioService(b.catalogue, nil).List()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestAnEmptyCatalogueIsAnEmptyListNotNull(t *testing.T) {
 
 func TestScenarioGetReturnsTheStartForm(t *testing.T) {
 	b := newBackend(t, map[string]string{"a": scenarioYAML("alpha", "Alpha", "vault", true)})
-	d, err := NewScenarioService(b.catalogue).Get("alpha")
+	d, err := NewScenarioService(b.catalogue, nil).Get("alpha")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,10 +81,41 @@ func TestScenarioGetReturnsTheStartForm(t *testing.T) {
 
 func TestScenarioGetRefusesWhatItCannotFind(t *testing.T) {
 	b := newBackend(t, map[string]string{"a": scenarioYAML("alpha", "Alpha", "vault", false)})
-	svc := NewScenarioService(b.catalogue)
+	svc := NewScenarioService(b.catalogue, nil)
 	for _, id := range []string{"", "  ", "missing"} {
 		if _, err := svc.Get(id); err == nil {
 			t.Errorf("Get(%q) succeeded", id)
 		}
+	}
+}
+
+func TestAnEnterpriseOnlyScenarioNeedsALicenseUntilOneIsSaved(t *testing.T) {
+	enterprise := strings.Replace(scenarioYAML("ent", "Enterprise only", "vault", false), "editions: [community]", "editions: [enterprise]", 1)
+	both := strings.Replace(scenarioYAML("both", "Either", "vault", false), "editions: [community]", "editions: [community, enterprise]", 1)
+	b := newBackend(t, map[string]string{
+		"e": enterprise, "b": both, "c": scenarioYAML("comm", "Community", "vault", false),
+	})
+
+	needs := func(licensed LicenseCheck) map[string]bool {
+		list, err := NewScenarioService(b.catalogue, licensed).List()
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string]bool{}
+		for _, s := range list.Scenarios {
+			out[s.ID] = s.NeedsLicense
+		}
+		return out
+	}
+
+	none := needs(func(string) bool { return false })
+	if !none["ent"] || none["both"] || none["comm"] {
+		t.Errorf("with no license: %v", none)
+	}
+	if got := needs(func(p string) bool { return p == "vault" }); got["ent"] {
+		t.Errorf("with a Vault license the scenario still needs one: %v", got)
+	}
+	if got := needs(nil); got["ent"] {
+		t.Errorf("with no check, every product counts as licensed: %v", got)
 	}
 }

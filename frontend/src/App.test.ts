@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/svelte";
+import { render, screen, cleanup, waitFor } from "@testing-library/svelte";
 import { tick } from "svelte";
 import userEvent from "@testing-library/user-event";
 
@@ -8,6 +8,12 @@ import App from "./App.svelte";
 // The Go side is not there in a unit test, so the bindings and the event bus are replaced.
 const prereq = vi.hoisted(() => vi.fn());
 vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/systemservice.js", () => ({ Prereq: prereq }));
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/scenarioservice.js", () => ({
+  List: vi.fn().mockResolvedValue({ Scenarios: [], Problems: [] }),
+}));
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/runservice.js", () => ({
+  Current: vi.fn().mockResolvedValue({ Status: "idle", ActiveStep: -1 }),
+}));
 vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} } }));
 
 // A controllable stand-in for the system's colour scheme.
@@ -48,17 +54,17 @@ describe("App", () => {
     render(App);
 
     expect(await screen.findByText("The Podman machine is stopped.")).toBeInTheDocument();
-    expect(screen.queryByText("No scenario is running.")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("No scenario is running.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("The Podman machine is stopped.")).not.toBeInTheDocument());
     expect(prereq).toHaveBeenCalledTimes(2);
   });
 
-  it("shows that no scenario is running once Podman is ready", async () => {
+  it("shows the scenarios page once the catalogue has loaded", async () => {
     systemScheme(false);
     render(App);
-    expect(await screen.findByText("No scenario is running.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Scenarios" })).toBeInTheDocument();
+    expect(await screen.findByText("No scenarios were found.")).toBeInTheDocument();
   });
 
   it.each([

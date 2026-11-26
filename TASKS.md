@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060 and T-061 done). Done tasks are marked `[x]`.
+**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060, T-061 and T-063 done, T-062 has one manual check left). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -163,7 +163,7 @@ Use the Carbon MCP for every component (R-UI-3). Needs spikes W1 to W4.
 | T-060 | [x] Scaffold the Wails v3 shell and the Svelte 5 + TypeScript + Vite frontend (`frontend/`, `internal/gui`, root `embed.go`), `task dev` and `task build`, CSP, offline build, committed generated bindings with a CI check. | R-UI-1 to R-UI-4, R-LANG-3, 3.8 | L | `task build` produces `Sev1 Situations.app` that opens a window with no network access. CI fails if the bindings are stale. |
 | T-061 | [x] Services and events skeleton in `internal/gui` (3.4): thin services over the engine, event publishing from the engine event stream, input validation. | R-APP-3, R-QUAL-5, 3.4 | L | Go tests for each service with the fake runtime. The frontend receives `run:state` snapshots. |
 | T-062 | (Done except one manual check: quitting during a run, which needs the Start form from T-064. Cleanup after `kill -9`, the single instance and quitting with no run were checked on the packaged app.) App launch: window versus CLI split, single-instance behaviour, start-up checks and leftover cleanup surfaced in the UI, graceful quit with confirmation during a run. | R-APP-2, R-APP-5, R-APP-6, R-APP-8, R-STATE-3 | M | Manual check. Quitting leaves nothing behind. A second launch focuses the first window. |
-| T-063 | Scenarios page: grouped catalogue, filters, license-needed state, blocked-while-running notice. | 6.1, 6.6 | M | Vitest component tests. |
+| T-063 | [x] Scenarios page: grouped catalogue, filters, license-needed state, blocked-while-running notice. | 6.1, 6.6 | M | Vitest component tests. |
 | T-064 | Start step form generated from the scenario's parameters, with names and validation. | R-SCN-11 | M | Tests for each parameter type. |
 | T-065 | Run page: header, Steps tab, progress indicator, guidance (collapsible), action and verify buttons, red and green status, Continue, notes, rating. | 6.2, 4.2 | L | Tests for each step state. |
 | T-066 | Live updates over events: deployment progress, step state, status. | 3.4 | M | Test with a fake engine stream. |

@@ -65,6 +65,13 @@ export interface ScenarioDetail {
      * Source is "built-in" or "user".
      */
     "Source": string;
+
+    /**
+     * NeedsLicense is true when the scenario runs only on an enterprise edition and
+     * no license is saved for its product. A scenario that also runs on the
+     * community edition never needs one to be listed as startable (6.6).
+     */
+    "NeedsLicense": boolean;
     "Objectives": string[] | null;
     "Prerequisites": string[] | null;
     "Parameters": ParameterView[] | null;
@@ -102,6 +109,13 @@ export interface ScenarioSummary {
      * Source is "built-in" or "user".
      */
     "Source": string;
+
+    /**
+     * NeedsLicense is true when the scenario runs only on an enterprise edition and
+     * no license is saved for its product. A scenario that also runs on the
+     * community edition never needs one to be listed as startable (6.6).
+     */
+    "NeedsLicense": boolean;
 }
 
 /**

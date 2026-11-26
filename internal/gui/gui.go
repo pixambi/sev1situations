@@ -19,6 +19,8 @@ type Deps struct {
 	Connect Connector
 	// Catalogue loads the scenarios.
 	Catalogue Catalogue
+	// Licensed reports whether a license is saved for a product.
+	Licensed LicenseCheck
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
@@ -49,7 +51,7 @@ func Run(assets fs.FS, deps *Deps) error {
 	if deps != nil {
 		conn = newLink(ctx, deps.Connect, emit)
 		services = []application.Service{
-			application.NewService(NewScenarioService(deps.Catalogue)),
+			application.NewService(NewScenarioService(deps.Catalogue, deps.Licensed)),
 			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
 			application.NewService(NewSystemService(conn, emit)),
 		}
