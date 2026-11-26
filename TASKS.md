@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2) and M2 are done, and M3 is under way (T-030 to T-036). Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2) and M2 are done, and M3 is done. Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -123,13 +123,15 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-034 | [x] `primitive` package: interface, registry, result and error semantics, redaction of secrets in messages and evidence, argument validation at load. | 4.5, R-QUAL-3 | L | Contract tests. |
 | T-035 | [x] Templating for arguments (`.Params`, `.Nodes`, `.Creds`, earlier outputs) with validation of unknown values. | 4.5 | M | Tests. |
 | T-036 | [x] Generic primitives: `container.*`, `file.*`, `http.request`, `wait.until`, `assert.*`. | 4.5 | L | Each has tests against the fake runtime. |
-| T-037 | `engine`: the single run, deploy, step state machine (4.6), no-skip rule, per-step timing, notes and rating, goroutines owned by the run with one cancelable context. | R-SCN-8, R-SCN-9, 4.6 | L | State machine tests for every transition and failure row in 4.6. |
-| T-038 | Engine: roll back to a reset point (default redeploy and replay, with override), end early, teardown, events recorded. | R-SCN-6, R-SCN-10, 4.7 | L | Tests with the fake runtime. |
+| T-037 | [x] `engine`: the single run, deploy, step state machine (4.6), no-skip rule, per-step timing, notes and rating, goroutines owned by the run with one cancelable context. | R-SCN-8, R-SCN-9, 4.6 | L | State machine tests for every transition and failure row in 4.6. |
+| T-038 | [x] Engine: roll back to a reset point (default redeploy and replay, with override), end early, teardown, events recorded. | R-SCN-6, R-SCN-10, 4.7 | L | Tests with the fake runtime. |
 | T-039 | Engine: node actions (stop, start, remove, revive) driven by what the product declares, with removed-node placeholders. | R-VIEW-6 | M | Tests. |
 | T-040 | CLI: `s1s scenario list`, `validate`, `new` (scaffold from a template). | R-CONTRIB-6 | M | `new` produces a folder that passes `validate`. |
 | T-041 | Engine event stream (state changes, progress, log lines) that the server can subscribe to. | 3.4 | M | Tests. |
 
-**M3 done when:** a fixture scenario with a start step, a breakage and a verification runs start to finish against the fake runtime in a Go test, including roll back and end early.
+**M3 done:** `TestAScenarioRunsStartToFinishWithRollBackAndEarlyEnd` in `internal/engine` runs it.
+
+**M3 done when (original wording):** a fixture scenario with a start step, a breakage and a verification runs start to finish against the fake runtime in a Go test, including roll back and end early.
 
 ---
 
