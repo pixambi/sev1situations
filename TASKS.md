@@ -140,7 +140,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
 | T-050 | [x] `product` package: interface, registry (replaces the temporary `builtinProducts` list in `internal/app/scenario_cmd.go`), `ClusterView` and `LogStream` types, settings fields. | 3.5, R-SCOPE-2, R-SCOPE-3 | M | Documented. A fake product exists for engine tests. |
-| T-051 | `product/vault`: versions and editions from `release`, license from settings, base image choice from S2. | R-RUN-5 to R-RUN-10 | M | Tests. |
+| T-051 | [x] `product/vault`: versions and editions from `release`, license from settings, base image choice from S2. | R-RUN-5 to R-RUN-10 | M | Tests. |
 | T-052 | Vault single and multi-node Raft deploy: install binary, render config, start, wait for readiness, `init` (5 shares, threshold 3), unseal, join, audit on. | R-VIEW-3, 7 | L | Integration test brings up 3 nodes with a leader. |
 | T-053 | Vault `Describe` (Cluster tab minimum, 5.5) and `LogStreams` (operational, audit). | R-VIEW-7, R-VIEW-8 | M | Tests. |
 | T-054 | Vault primitives: `vault.cli`, `status`, `raft-peers`, `expect-no-leader`, `kv-put`, `kv-get`, `unseal`, `init`. | 4.5 | L | Each has tests with scripted exec responses. |

@@ -305,3 +305,26 @@ func TestScenarioCommandsUseTheProductRegistry(t *testing.T) {
 		t.Errorf("exit %d stderr %q", code, errOut)
 	}
 }
+
+func TestDefaultProducts(t *testing.T) {
+	reg, err := DefaultProducts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(reg.Names(), ","); got != "vault" {
+		t.Errorf("products = %q, want the products that ship", got)
+	}
+	fields := reg.SettingsFields()
+	if len(fields) != 1 || fields[0].Key != "vault.license" {
+		t.Errorf("settings fields = %+v, want the Vault license, brought by the product (R-SET-4)", fields)
+	}
+
+	// The shipped scenario commands work with it.
+	parent := t.TempDir()
+	if code, _, e := cli(t, Options{Products: reg}, "scenario", "new", "vault-one", "--product", "vault", "--dir", parent); code != exitOK {
+		t.Errorf("scenario new with the real registry: %d %s", code, e)
+	}
+	if code, o, e := cli(t, Options{Products: reg}, "scenario", "validate", parent); code != exitOK || !strings.Contains(o, "(vault-one)") {
+		t.Errorf("scenario validate with the real registry: %d %q %s", code, o, e)
+	}
+}

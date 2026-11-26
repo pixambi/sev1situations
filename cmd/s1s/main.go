@@ -19,7 +19,12 @@ func main() {
 	defer stop()
 
 	if len(os.Args) > 1 {
-		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, app.Options{Builtin: sev1situations.Scenarios})
+		products, err := app.DefaultProducts()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "s1s:", err)
+			os.Exit(1)
+		}
+		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, app.Options{Builtin: sev1situations.Scenarios, Products: products})
 		stop()
 		os.Exit(code)
 	}
