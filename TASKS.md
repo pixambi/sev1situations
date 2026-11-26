@@ -95,11 +95,11 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 |---|---|---|---|---|
 | T-010 | [x] `runtime` package: types and the `Runtime` interface (3.5), including options, results and labels. | R-RUN-3, 3.5 | M | Compiles. Documented. No Podman imports. |
 | T-011 | [x] **Fake runtime**: in-memory containers, networks, files, scripted `Exec`, failure injection, log feeds. | 9, R-TEST-2 | M | Unit tests prove it behaves like the interface contract. |
-| T-012 | `runtime/podman`: socket discovery and a minimal HTTP client over the unix socket. Clear errors when Podman is missing or the machine is stopped. | R-APP-7, 7 | M | Table tests with a fake server. Manual check on a real machine. |
-| T-013 | Podman: networks and containers (create, start, stop, remove), labels, host port publishing on `127.0.0.1`. | R-RUN-4, 7 | M | Integration test (tagged, needs Podman) creates and removes a labelled container and network. |
-| T-014 | Podman: `Exec` with captured output and exit code, `Copy` into a container, `Logs` stream. | 7 | M | Integration test passes. |
-| T-015 | Podman: `Attach` for terminals (exec with a TTY). | R-TERM-2 | M | Integration test sends input and reads output. |
-| T-016 | Podman: `List` and `RemoveRun` by label, idempotent, continues past a failed removal and reports it. | R-STATE-3, 7 | M | Integration test leaves nothing behind, including after a simulated crash. |
+| T-012 | [x] `runtime/podman`: socket discovery and a minimal HTTP client over the unix socket. Clear errors when Podman is missing or the machine is stopped. | R-APP-7, 7 | M | Table tests with a fake server. Manual check on a real machine. |
+| T-013 | [x] Podman: networks and containers (create, start, stop, remove), labels, host port publishing on `127.0.0.1`. | R-RUN-4, 7 | M | Integration test (tagged, needs Podman) creates and removes a labelled container and network. |
+| T-014 | [x] Podman: `Exec` with captured output and exit code, `Copy` into a container, `Logs` stream. | 7 | M | Integration test passes. |
+| T-015 | [x] Podman: `Attach` for terminals (exec with a TTY). | R-TERM-2 | M | Integration test sends input and reads output. |
+| T-016 | [x] Podman: `List` and `RemoveRun` by label, idempotent, continues past a failed removal and reports it. | R-STATE-3, 7 | M | Integration test leaves nothing behind, including after a simulated crash. |
 | T-017 | Host port allocator (high range, checks the port is free). | 7 | S | Unit tests. |
 | T-018 | `release` package: list versions for a product, including `+ent` and `+ent.hsm`. | R-RUN-7, S7 | M | Tests with recorded responses. |
 | T-019 | `release`: download, verify the SHA-256 against `SHA256SUMS` (no signature check, decision D7), unzip, cache by product, edition and version. Cache lives in the app data directory. | R-RUN-6, R-RUN-8, R-RUN-9 | L | Tests with a local fake server. A failed checksum aborts and nothing is cached. Second use needs no network. |
