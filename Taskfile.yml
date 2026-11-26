@@ -1,0 +1,126 @@
+version: '3'
+
+vars:
+  APP_NAME: "sev1situations"
+  BIN_DIR: "bin"
+  PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  # Target OS for build/package/run. Defaults to the host OS, and is overridden
+  # by `wails3 build GOOS=...` (or the GOOS env var) for cross-compilation. The
+  # tasks below dispatch to the matching platform Taskfile via this variable.
+  GOOS: '{{.GOOS | default OS}}'
+  # Release identity, stamped into internal/version by the production build.
+  # A tagged, clean checkout builds as that tag without the leading "v"; anything
+  # else builds as "dev", which the updater ignores. Override with `task build VERSION=1.2.3`.
+  VERSION:
+    sh: 'v=$(git describe --tags --exact-match 2>/dev/null) && echo "${v#v}" || echo dev'
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo none
+  DATE:
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  VERSION_LDFLAGS: '-X github.com/pixambi/sev1situations/internal/version.Version={{.VERSION}} -X github.com/pixambi/sev1situations/internal/version.Commit={{.COMMIT}} -X github.com/pixambi/sev1situations/internal/version.Date={{.DATE}}'
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+  ios: ./build/ios/Taskfile.yml
+  android: ./build/android/Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application
+    cmds:
+      - task: "{{.GOOS}}:build"
+
+  package:
+    summary: Packages a production build of the application
+    cmds:
+      - task: "{{.GOOS}}:package"
+
+  run:
+    summary: Runs the application
+    cmds:
+      - task: "{{.GOOS}}:run"
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  test:
+    summary: Runs the Go and frontend unit tests
+    cmds:
+      - task: test:go
+      - task: test:frontend
+
+  test:go:
+    summary: Runs the Go tests
+    cmds:
+      - go test ./...
+
+  test:frontend:
+    summary: Runs the frontend unit tests
+    dir: frontend
+    cmds:
+      - npm test
+
+  test:e2e:
+    summary: Runs the Playwright browser tests against a server build
+    desc: |
+      Playwright starts the Go app with -tags server,production on 127.0.0.1:8080.
+      Bindings are generated with the server tag first, then the frontend is built.
+    cmds:
+      - wails3 generate bindings -f '-tags=server'
+      - cd frontend && npm run build
+      - cd frontend && npx playwright test
+
+  release:package:
+    summary: Zips the .app and writes SHA256SUMS for a GitHub release
+    desc: |
+      Needs a clean checkout on a version tag (git tag v0.1.0) or an explicit
+      VERSION=0.1.0. The zip name contains the OS and architecture, which is how
+      the updater picks the right asset. Publish with:
+
+        gh release create v0.1.0 bin/release/* --title v0.1.0 --notes-file <notes>
+    preconditions:
+      - sh: test "{{.VERSION}}" != dev
+        msg: "VERSION is dev. Check out a version tag or pass VERSION=0.1.0."
+      - sh: test -z "$(git status --porcelain)"
+        msg: "The working tree has uncommitted changes."
+    cmds:
+      - task: package
+      - rm -rf bin/release && mkdir -p bin/release
+      - ditto -c -k --sequesterRsrc --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "bin/release/{{.APP_NAME}}-{{.VERSION}}-darwin-{{ARCH}}.zip"
+      - cd bin/release && shasum -a 256 *.zip > SHA256SUMS && cat SHA256SUMS
+
+  install:msix:tools:
+    summary: Installs tools required for Windows MSIX packaging
+    cmds:
+      - task: windows:install:msix:tools
+
+  setup:docker:
+    summary: Builds Docker image for cross-compilation (~800MB download)
+    cmds:
+      - task: common:setup:docker
+
+  build:server:
+    summary: Builds the application in server mode (no GUI, HTTP server only)
+    cmds:
+      - task: common:build:server
+
+  run:server:
+    summary: Runs the application in server mode
+    cmds:
+      - task: common:run:server
+
+  build:docker:
+    summary: Builds a Docker image for server mode deployment
+    cmds:
+      - task: common:build:docker
+
+  run:docker:
+    summary: Builds and runs the Docker image
+    cmds:
+      - task: common:run:docker
