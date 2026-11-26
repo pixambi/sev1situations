@@ -5,31 +5,50 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	sev1situations "github.com/pixambi/sev1situations"
 	"github.com/pixambi/sev1situations/internal/app"
+	"github.com/pixambi/sev1situations/internal/engine"
 	"github.com/pixambi/sev1situations/internal/gui"
+	"github.com/pixambi/sev1situations/internal/scenario"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	products, err := app.DefaultProducts()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "s1s:", err)
+		os.Exit(1)
+	}
+	opts := app.Options{Builtin: sev1situations.Scenarios, Products: products, Stdin: os.Stdin}
+
+	// With arguments it is the command-line tool (R-APP-5).
 	if len(os.Args) > 1 {
-		products, err := app.DefaultProducts()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "s1s:", err)
-			os.Exit(1)
-		}
-		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, app.Options{Builtin: sev1situations.Scenarios, Products: products, Stdin: os.Stdin})
+		code := app.Run(ctx, os.Args[1:], os.Stdout, os.Stderr, opts)
 		stop()
 		os.Exit(code)
 	}
 
-	if err := gui.Run(sev1situations.Frontend, nil); err != nil {
+	// With none it opens the window. The window opens even when Podman is not
+	// ready, and connects when the page asks (R-APP-2).
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	deps := &gui.Deps{
+		Catalogue: func() (*scenario.Registry, error) { return app.LoadCatalogue(opts) },
+		Connect: func(ctx context.Context) (*engine.Engine, []string, error) {
+			conn, err := app.Connect(ctx, opts, log, nil)
+			if err != nil {
+				return nil, nil, err
+			}
+			return conn.Engine, conn.Startup.Notices(), nil
+		},
+	}
+	if err := gui.Run(sev1situations.Frontend, deps); err != nil {
 		fmt.Fprintln(os.Stderr, "s1s:", err)
 		os.Exit(1)
 	}

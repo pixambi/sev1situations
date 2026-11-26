@@ -40,6 +40,12 @@ export interface PrereqStatus {
      * Message says what is wrong and what to do about it. It is empty when Ready.
      */
     "Message": string;
+
+    /**
+     * Notices describe what start-up cleanup did, for example that a run left by
+     * an earlier launch was removed.
+     */
+    "Notices": string[] | null;
 }
 
 /**

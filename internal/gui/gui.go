@@ -9,19 +9,16 @@ import (
 	"io/fs"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
-
-	"github.com/pixambi/sev1situations/internal/engine"
 )
 
-// Deps are the core pieces the services work over. The program builds them at
-// start-up (T-062), so this package holds no knowledge of Podman or products.
+// Deps are what the services work over. The program supplies them, so this
+// package holds no knowledge of Podman or products.
 type Deps struct {
-	// Engine runs the one run.
-	Engine *engine.Engine
+	// Connect joins the core to the container runtime. It is called when the
+	// window asks, and again on Retry while the runtime is not ready.
+	Connect Connector
 	// Catalogue loads the scenarios.
 	Catalogue Catalogue
-	// Prereq checks the container runtime.
-	Prereq PrereqCheck
 }
 
 // Run opens the main window on the compiled frontend and blocks until the
@@ -48,11 +45,13 @@ func Run(assets fs.FS, deps *Deps) error {
 	}
 
 	var services []application.Service
+	var conn *link
 	if deps != nil {
+		conn = newLink(ctx, deps.Connect, emit)
 		services = []application.Service{
 			application.NewService(NewScenarioService(deps.Catalogue)),
-			application.NewService(NewRunService(ctx, deps.Engine, deps.Catalogue, emit)),
-			application.NewService(NewSystemService(ctx, deps.Prereq, emit)),
+			application.NewService(NewRunService(ctx, conn.source, deps.Catalogue, emit)),
+			application.NewService(NewSystemService(conn, emit)),
 		}
 	}
 
@@ -69,6 +68,11 @@ func Run(assets fs.FS, deps *Deps) error {
 			Host: "127.0.0.1",
 			Port: 8080,
 		},
+		// Quitting during a run asks first, then ends the run so nothing is left
+		// behind (R-APP-6, R-STATE-3). The window closing leads here as well,
+		// because the application ends with its last window.
+		ShouldQuit: func() bool { return conn == nil || !confirmQuit(app, conn) },
+		OnShutdown: func() { conn.endRun() },
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
@@ -87,10 +91,6 @@ func Run(assets fs.FS, deps *Deps) error {
 		},
 	})
 
-	if deps != nil {
-		go pumpEvents(ctx, deps.Engine, emit)
-	}
-
 	// Adds in-app updates when this is a release build (see updater.go).
 	setupUpdater(app)
 
@@ -106,4 +106,27 @@ func Run(assets fs.FS, deps *Deps) error {
 		return fmt.Errorf("run application: %w", err)
 	}
 	return nil
+}
+
+// confirmQuit reports whether the application must stay open for now. With no run
+// it returns false and the application quits. During a run it asks the instructor,
+// and quits itself once the run has ended, if they agree.
+func confirmQuit(app *application.App, conn *link) bool {
+	if !conn.runActive() {
+		return false
+	}
+	d := app.Dialog.Question().SetTitle("Quit Sev1 Situations?").SetMessage(
+		"A scenario is running. Quitting ends it and removes its containers, and the report is saved.")
+	quit := d.AddButton("End scenario and quit")
+	quit.OnClick(func() {
+		go func() {
+			conn.endRun()
+			app.Quit()
+		}()
+	})
+	keep := d.AddButton("Keep running")
+	d.SetDefaultButton(keep)
+	d.SetCancelButton(keep)
+	d.Show()
+	return true
 }

@@ -203,5 +203,5 @@ func newBackend(t *testing.T, scenarios map[string]string) *backend {
 }
 
 func (b *backend) runService(ctx context.Context) *RunService {
-	return NewRunService(ctx, b.eng, b.catalogue, b.out.emit)
+	return NewRunService(ctx, func() (*engine.Engine, error) { return b.eng, nil }, b.catalogue, b.out.emit)
 }

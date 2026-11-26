@@ -1,8 +1,14 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/svelte";
 import { tick } from "svelte";
+import userEvent from "@testing-library/user-event";
 
 import App from "./App.svelte";
+
+// The Go side is not there in a unit test, so the bindings and the event bus are replaced.
+const prereq = vi.hoisted(() => vi.fn());
+vi.mock("../bindings/github.com/pixambi/sev1situations/internal/gui/systemservice.js", () => ({ Prereq: prereq }));
+vi.mock("@wailsio/runtime", () => ({ Events: { On: () => () => {} } }));
 
 // A controllable stand-in for the system's colour scheme.
 function systemScheme(initiallyDark: boolean) {
@@ -17,8 +23,11 @@ function systemScheme(initiallyDark: boolean) {
   return { change: (dark: boolean) => listeners.forEach((l) => l({ matches: dark } as MediaQueryListEvent)), listeners };
 }
 
+beforeEach(() => prereq.mockResolvedValue({ Ready: true, Message: "", Notices: [] }));
+
 afterEach(() => {
   cleanup();
+  prereq.mockReset();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("theme");
 });
@@ -31,7 +40,25 @@ describe("App", () => {
     expect(screen.getByRole("banner")).toHaveTextContent("Sev1");
     expect(screen.getByRole("banner")).toHaveTextContent("Situations");
     expect(screen.getByRole("heading", { name: "Sev1 Situations" })).toBeInTheDocument();
-    expect(screen.getByText("No scenario is running.")).toBeInTheDocument();
+  });
+
+  it("checks Podman on load and says so when it is not ready, and Retry asks again", async () => {
+    systemScheme(false);
+    prereq.mockResolvedValueOnce({ Ready: false, Message: "The Podman machine is stopped.", Notices: [] });
+    render(App);
+
+    expect(await screen.findByText("The Podman machine is stopped.")).toBeInTheDocument();
+    expect(screen.queryByText("No scenario is running.")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("No scenario is running.")).toBeInTheDocument();
+    expect(prereq).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows that no scenario is running once Podman is ready", async () => {
+    systemScheme(false);
+    render(App);
+    expect(await screen.findByText("No scenario is running.")).toBeInTheDocument();
   });
 
   it.each([

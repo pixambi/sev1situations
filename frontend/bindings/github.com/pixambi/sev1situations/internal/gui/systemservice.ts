@@ -15,7 +15,8 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
- * Prereq checks the container runtime now and publishes the answer.
+ * Prereq checks the container runtime now, connecting to it if it has not been
+ * reached yet, and publishes the answer. The page calls it on load and on Retry.
  */
 export function Prereq(): $CancellablePromise<$models.PrereqStatus> {
     return $Call.ByID(3478871342);

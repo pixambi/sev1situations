@@ -9,20 +9,14 @@ import (
 	"io"
 	"log/slog"
 	"path"
-	"path/filepath"
-	goruntime "runtime"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/pixambi/sev1situations/internal/deploy"
 	"github.com/pixambi/sev1situations/internal/engine"
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
-	"github.com/pixambi/sev1situations/internal/runtime"
-	"github.com/pixambi/sev1situations/internal/runtime/podman"
 	"github.com/pixambi/sev1situations/internal/scenario"
-	"github.com/pixambi/sev1situations/internal/settings"
 )
 
 // This file is a temporary harness (T-057). It runs the Vault sandbox through the
@@ -67,38 +61,22 @@ type sandboxChoice struct {
 }
 
 func runSandbox(ctx context.Context, stdout, stderr io.Writer, opts Options, choice sandboxChoice) error {
-	products := opts.Products
-	if products == nil {
-		var err error
-		if products, err = DefaultProducts(); err != nil {
-			return err
-		}
-	}
-	dataDir, err := DataDir()
-	if err != nil {
-		return err
-	}
-	store, err := settings.Open(dataDir, products.SettingsFields()...)
-	if err != nil {
-		return err
-	}
-	rt, err := podman.New(ctx)
-	if err != nil {
-		return err
-	}
 	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
-
-	// Start-up: the runtime is reachable, and a crashed earlier launch is cleaned up (F-10, F-11).
-	report, err := Startup(ctx, rt, log)
+	conn, err := Connect(ctx, opts, log, func(ev engine.Event) {
+		if ev.Kind == engine.EventDeployProgress || ev.Kind == engine.EventDeployFailed || ev.Kind == engine.EventTeardown {
+			fmt.Fprintf(stdout, "  %s\n", ev.Message)
+		}
+	})
 	if err != nil {
 		return err
 	}
-	for _, id := range report.RemovedRuns {
+	for _, id := range conn.Startup.RemovedRuns {
 		fmt.Fprintf(stdout, "removed what run %s left behind\n", id)
 	}
-	for _, f := range report.Failures {
+	for _, f := range conn.Startup.Failures {
 		fmt.Fprintf(stdout, "could not fully remove run %s: %v\n", f.RunID, f.Err)
 	}
+	products, store, deployer, eng := conn.Products, conn.Settings, conn.Deployer, conn.Engine
 
 	sc, err := loadSandbox(opts, products)
 	if err != nil {
@@ -108,19 +86,6 @@ func runSandbox(ctx context.Context, stdout, stderr io.Writer, opts Options, cho
 	if err != nil {
 		return err
 	}
-
-	deployer := &deploy.Deployer{
-		Products: products, Runtime: rt, Settings: store, Ports: runtime.NewPortAllocator(), Arch: goruntime.GOARCH,
-		Cache: release.NewCache(filepath.Join(dataDir, "cache", "binaries"), release.NewClient()),
-	}
-	eng := engine.New(engine.Deps{
-		Registry: primitive.NewRegistry(), Deployer: deployer, Runtime: rt,
-		OnEvent: func(ev engine.Event) {
-			if ev.Kind == engine.EventDeployProgress || ev.Kind == engine.EventDeployFailed || ev.Kind == engine.EventTeardown {
-				fmt.Fprintf(stdout, "  %s\n", ev.Message)
-			}
-		},
-	})
 
 	instructor := store.Instructor()
 	if instructor == "" {
