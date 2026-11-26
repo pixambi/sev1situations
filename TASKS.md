@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060, T-061 and T-063 to T-071 done, T-062 has one manual check left). Done tasks are marked `[x]`.
+**Status:** M0 to M4 are done, and so are all the spikes. M5, the Wails shell and frontend, is in progress (T-060, T-061 and T-063 to T-072 done, T-062 has one manual check left). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -172,7 +172,7 @@ Use the Carbon MCP for every component (R-UI-3). Needs spikes W1 to W4.
 | T-069 | [x] Logs tab: node and stream selectors, live batched stream, pause and scroll lock, filter by text, regular expression and level with highlighted matches. | R-VIEW-3 | L | Tests, including the line cap. |
 | T-070 | [x] Terminals: Go bridge, events or fallback per spike W2, ghostty-web glue, resize, multiple terminals, closed on teardown. | R-TERM-1 to R-TERM-7 | L | Manual check on a running sandbox plus Go and Vitest tests. |
 | T-071 | [x] Settings page: licenses (masked), instructor name, theme override. | R-SET-1 to R-SET-5, 6.7 | M | Tests. |
-| T-072 | Accessibility pass and light and dark themes. | R-UI-6 | M | Checked with keyboard and an automated axe audit in Playwright. |
+| T-072 | [x] Accessibility pass and light and dark themes. | R-UI-6 | M | Checked with keyboard and an automated axe audit in Playwright. |
 | T-073 | Native behaviour: menu, quit confirmation and save dialogs opened from Go. | 6.7, 3.8 | S | Manual check on the packaged app. |
 
 **M5 done when:** the Vault Sandbox runs fully in the app window: pick it, deploy, see the Cluster tab, open a terminal, watch logs, end it, and see everything destroyed.

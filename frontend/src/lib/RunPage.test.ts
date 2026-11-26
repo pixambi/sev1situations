@@ -211,6 +211,18 @@ describe("ending and rolling back", () => {
     await waitFor(() => expect(svc.End).toHaveBeenCalledOnce());
   });
 
+  it("gives focus back to the button that opened the dialog when it is cancelled", async () => {
+    render(RunPage, { snapshot: withActive() });
+    const end = screen.getByRole("button", { name: "End scenario" });
+    end.focus();
+    await userEvent.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(end).toHaveFocus());
+  });
+
   it("rolls back to the chosen step after confirming", async () => {
     render(RunPage, {
       snapshot: snap({ ActiveStep: 1, Steps: [step("a", { State: "complete", CanRollBack: true, Title: "Cause the outage" }), step("b", { State: "active" })] }),

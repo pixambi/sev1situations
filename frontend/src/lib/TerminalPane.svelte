@@ -19,6 +19,7 @@
   let { id, node, visible, onclose }: Props = $props();
 
   let host: HTMLElement | undefined = $state();
+  let leaveButton: HTMLElement | undefined = $state();
   let guarded: GuardedTerminal | undefined;
   let exited = $state<string | null>(null);
   let problem = $state("");
@@ -45,6 +46,16 @@
       cursorBlink: true,
       scrollback: 5000,
       theme: { background: "#161616", foreground: "#f4f4f4" },
+    });
+    // A terminal passes Tab to the shell, so a keyboard user would be stuck in it. Shift+Escape is the way out
+    // (WCAG 2.1.2): it moves focus to the button below, from where Tab carries on through the page.
+    term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+      if (e.key === "Escape" && e.shiftKey) {
+        e.preventDefault();
+        leaveButton?.focus();
+        return true;
+      }
+      return false;
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -140,10 +151,22 @@
   <!-- ghostty-web gives its container its own role and label, so the node is named on a wrapper. -->
   <div role="group" aria-label="Terminal on {node}">
     <div class="host" bind:this={host}></div>
+    <div class="leave">
+      <button type="button" bind:this={leaveButton} class="bx--btn bx--btn--ghost bx--btn--sm" onclick={() => host?.focus()}>Back into the terminal</button>
+      <span>Press Shift+Escape in the terminal to leave it with the keyboard. This button goes back in.</span>
+    </div>
   </div>
 </div>
 
 <style>
+  .leave {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary, #525252);
+  }
   .host {
     height: 28rem;
     background: #161616;

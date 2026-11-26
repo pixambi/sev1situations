@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { audit } from "./axe";
 
 // This starts a real Vault sandbox on Podman through the page, then ends it. It needs a running
 // Podman machine and the network (or a cached Vault binary), and takes about a minute, so it only
@@ -33,6 +34,20 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await expect(page.getByText("This is an open sandbox")).toBeVisible({ timeout: 240_000 });
   await expect(page.getByRole("heading", { name: "Vault Sandbox", level: 2 })).toBeVisible();
   expect(leftovers()).not.toBe("");
+
+  // The run page and its tabs pass the accessibility audit in both themes (R-UI-6).
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.getByRole("tab", { name: "Steps" }).click();
+    await audit(page, `the run page, Steps tab (${scheme})`);
+    await page.getByRole("tab", { name: "Cluster" }).click();
+    await expect(page.getByText("running", { exact: true })).toBeVisible({ timeout: 60_000 });
+    await audit(page, `the Cluster tab (${scheme})`);
+    await page.getByRole("tab", { name: "Logs" }).click();
+    await expect(page.getByRole("log", { name: "Log lines" })).toContainText("[INFO]", { timeout: 60_000 });
+    await audit(page, `the Logs tab (${scheme})`);
+  }
+  await page.emulateMedia({ colorScheme: "light" });
 
   // The Cluster tab describes what was deployed. The root token is masked until it is revealed.
   await page.getByRole("tab", { name: "Cluster" }).click();
@@ -125,6 +140,14 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
     }), { timeout: 15_000 })
     .toBeGreaterThan(50);
 
+  // The terminal does not trap the keyboard: Shift+Escape leaves it, and the page can be audited with it open.
+  await screen.click();
+  await page.keyboard.press("Shift+Escape");
+  await expect(page.getByRole("button", { name: "Back into the terminal" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Back into the terminal" })).not.toBeFocused();
+  await audit(page, "the Terminals tab");
+
   expect(await page.evaluate(() => (window as any).__violations)).toEqual([]);
 
   // Another scenario cannot be started meanwhile.
@@ -133,7 +156,22 @@ test("deploys the Vault sandbox from the page and ends it, leaving nothing behin
   await expect(page.getByRole("button", { name: "Start" })).toBeDisabled();
   await page.getByRole("tab", { name: "Current run" }).click();
 
-  await page.getByRole("button", { name: "End scenario" }).click();
+  // The confirmation dialog takes focus, keeps it while Tab is pressed, closes on Escape and gives focus back.
+  const endButton = page.getByRole("button", { name: "End scenario" });
+  await endButton.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await audit(page, "the End scenario dialog");
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+  }
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(endButton).toBeFocused();
+
+  await endButton.click();
   await page.getByRole("dialog").getByRole("button", { name: "End scenario" }).click();
   await expect(page.getByRole("heading", { name: "Scenarios", level: 2 })).toBeVisible({ timeout: 120_000 });
   expect(leftovers()).toBe("");

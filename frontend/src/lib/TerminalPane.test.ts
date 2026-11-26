@@ -23,6 +23,7 @@ const emulator = vi.hoisted(() => ({
   onData: undefined as ((d: string) => void) | undefined,
   onResize: undefined as ((e: { cols: number; rows: number }) => void) | undefined,
   throwNext: 0,
+  keyHandler: undefined as ((e: KeyboardEvent) => boolean) | undefined,
   instances: 0,
   disposed: 0,
   cols: 100,
@@ -47,6 +48,11 @@ vi.mock("ghostty-web", () => ({
     constructor(options: unknown) {
       emulator.options = options;
       emulator.instances++;
+    }
+    keyHandler: ((e: KeyboardEvent) => boolean) | undefined;
+    attachCustomKeyEventHandler(h: (e: KeyboardEvent) => boolean) {
+      this.keyHandler = h;
+      emulator.keyHandler = h;
     }
     loadAddon() {}
     open() {}
@@ -171,6 +177,22 @@ describe("TerminalPane", () => {
     svc.Open.mockRejectedValueOnce(new Error("node-1 has been removed, so it has no terminal."));
     setup();
     expect(await screen.findByText(/has been removed/)).toBeInTheDocument();
+  });
+
+  it("lets a keyboard user out with Shift+Escape, and passes every other key to the shell", async () => {
+    setup();
+    await waitFor(() => expect(svc.Open).toHaveBeenCalled());
+    const leave = screen.getByRole("button", { name: "Back into the terminal" });
+    expect(leave).not.toHaveFocus();
+
+    const press = (init: KeyboardEventInit) => emulator.keyHandler!(new KeyboardEvent("keydown", { ...init, cancelable: true }));
+    expect(press({ key: "Escape" })).toBe(false); // an ordinary Escape belongs to the shell
+    expect(press({ key: "Tab" })).toBe(false);
+    expect(press({ key: "a", shiftKey: true })).toBe(false);
+    expect(leave).not.toHaveFocus();
+
+    expect(press({ key: "Escape", shiftKey: true })).toBe(true);
+    expect(leave).toHaveFocus();
   });
 
   it("closes the session and stops listening when the pane goes away", async () => {
