@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2) and M2 are done, M3 is done, and M4 is next. Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2), M2, M3 and M4 are done. M5, the Wails shell and frontend, is next, and it starts with spike W2 (the terminal). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -148,7 +148,9 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-056 | [x] `scenarios/vault/sandbox/` (5.3.2) including the node-count parameter. | 5.3.2 | M | Loads, validates, and runs through the engine with the real runtime. |
 | T-057 | [x] Temporary CLI or test harness to run the sandbox and print state, so the slice can be proven before any UI exists. | R-AGENT-6 | S | Run manually. Everything is destroyed afterwards. |
 
-**M4 done when:** the Vault Sandbox deploys on real Podman through the engine, can be torn down cleanly, and a second run after a forced kill cleans up leftovers.
+**M4 done:** `s1s sandbox` deploys the Vault sandbox on real Podman through the engine (three nodes, one active and two standby), tears it down to nothing, and a launch after `kill -9` removes the leftover run. Proved by hand on 2026-11-26.
+
+**M4 done when (original wording):** the Vault Sandbox deploys on real Podman through the engine, can be torn down cleanly, and a second run after a forced kill cleans up leftovers.
 
 ---
 
