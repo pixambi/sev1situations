@@ -240,6 +240,7 @@ func (e *Engine) prepare(r *run, c scenario.Call) (map[string]any, primitive.Env
 		Runtime:  e.deps.Runtime,
 		Run:      runtime.Run{ID: r.id, Scenario: r.sc.ID},
 		Nodes:    r.deployment.Nodes,
+		Creds:    r.deployment.Creds,
 		ReadFile: r.sc.ReadFile,
 		Render:   func(src string) (string, error) { return scenario.Render(src, data) },
 		Redactor: r.redactor,

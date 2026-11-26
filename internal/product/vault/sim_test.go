@@ -71,7 +71,7 @@ func (s *sim) node(c runtime.Container) *simNode {
 
 func ok() runtime.ExecResult { return runtime.ExecResult{} }
 
-func fail(code int, stderr string) runtime.ExecResult {
+func simFail(code int, stderr string) runtime.ExecResult {
 	return runtime.ExecResult{ExitCode: code, Stderr: stderr}
 }
 
@@ -97,14 +97,14 @@ func (s *sim) exec(c runtime.Container, cmd []string, o runtime.ExecOptions) (ru
 	case binaryPath:
 		return s.vault(c, n, cmd, o), nil
 	}
-	return fail(127, "unknown command "+cmd[0]), nil
+	return simFail(127, "unknown command "+cmd[0]), nil
 }
 
 func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.ExecOptions) runtime.ExecResult {
 	s.calls = append(s.calls, call{node: n.name, argv: append([]string(nil), cmd...), env: o.Env})
 	args := cmd[1:]
 	if !n.started {
-		return fail(1, "Error checking seal status: connection refused")
+		return simFail(1, "Error checking seal status: connection refused")
 	}
 	hasToken := o.Env["VAULT_TOKEN"] == simToken
 
@@ -127,7 +127,7 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 
 	case "audit":
 		if !hasToken {
-			return fail(2, "permission denied")
+			return simFail(2, "permission denied")
 		}
 		s.auditEnabled++
 		return ok()
@@ -139,7 +139,7 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 				return runtime.ExecResult{ExitCode: 2, Stderr: "init exploded", Stdout: "SECRET-OUT " + simToken}
 			}
 			if s.initialized {
-				return fail(2, "Vault is already initialized")
+				return simFail(2, "Vault is already initialized")
 			}
 			s.initialized, n.initialized = true, true
 			s.voters = []string{c.ID}
@@ -152,7 +152,7 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 				valid = valid || k == args[2]
 			}
 			if !valid {
-				return fail(2, "invalid key "+args[2])
+				return simFail(2, "invalid key "+args[2])
 			}
 			if n.progress++; n.progress >= keyThreshold {
 				n.sealed, n.progress = false, 0
@@ -167,17 +167,17 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 			case "join":
 				if s.joinFailures > 0 {
 					s.joinFailures--
-					return fail(2, "leader not ready")
+					return simFail(2, "leader not ready")
 				}
 				if s.leader == "" || n.initialized {
-					return fail(2, "leader not ready")
+					return simFail(2, "leader not ready")
 				}
 				n.initialized = true
 				s.voters = append(s.voters, c.ID)
 				return ok()
 			case "list-peers":
 				if !hasToken {
-					return fail(2, "permission denied")
+					return simFail(2, "permission denied")
 				}
 				var servers []map[string]any
 				for _, id := range s.voters {
@@ -188,7 +188,7 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 			}
 		}
 	}
-	return fail(2, "unsupported command: "+strings.Join(args, " "))
+	return simFail(2, "unsupported command: "+strings.Join(args, " "))
 }
 
 // helpers for assertions ------------------------------------------------------

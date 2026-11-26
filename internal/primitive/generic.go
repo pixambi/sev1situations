@@ -29,9 +29,9 @@ func RegisterGeneric(r *Registry) error {
 	return nil
 }
 
-// node finds a node of the deployment. An unknown node means the primitive
+// Lookup finds a node of the deployment by name. An unknown node means a primitive
 // cannot run, which is an error and not a Fail.
-func (e Env) node(name string) (Node, error) {
+func (e Env) Lookup(name string) (Node, error) {
 	if n, ok := e.Nodes[name]; ok {
 		return n, nil
 	}

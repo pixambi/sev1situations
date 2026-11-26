@@ -802,6 +802,10 @@ func TestTheScenarioFilesStayInsideTheScenario(t *testing.T) {
 	if b, err := env.ReadFile("steps/break.md"); err != nil || string(b) != "# break\n" {
 		t.Errorf("ReadFile = %q, %v", b, err)
 	}
+	// Product primitives find credentials through the environment, so no scenario carries one.
+	if tok, ok := env.Credential("primary", "rootToken"); !ok || tok != rootToken {
+		t.Errorf("Credential = %q, %v, want the deployment's root token for its cluster", tok, ok)
+	}
 }
 
 // Section 4.6, the rows not covered above.

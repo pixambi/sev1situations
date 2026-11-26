@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
 	"github.com/pixambi/sev1situations/internal/settings"
@@ -123,6 +122,3 @@ func RequireLicense(s product.Settings, e release.Edition) (string, error) {
 	}
 	return license, nil
 }
-
-// Primitives implements product.Product. They are built in T-054.
-func (*Product) Primitives() []primitive.Primitive { return nil }

@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
 	"github.com/pixambi/sev1situations/internal/runtime"
@@ -164,6 +165,9 @@ func TestDeployARealThreeNodeCluster(t *testing.T) {
 		t.Errorf("Describe roles = %v, want one active and two standby", roles)
 	}
 
+	// The primitives work on the real cluster.
+	realPrimitives(t, ctx, rt, d)
+
 	// The API answers on the published loopback port, from this computer.
 	if len(d.Published) != 3 {
 		t.Fatalf("published = %+v", d.Published)
@@ -177,5 +181,66 @@ func TestDeployARealThreeNodeCluster(t *testing.T) {
 	_ = resp.Body.Close()
 	if resp.StatusCode != 200 || !strings.Contains(string(body), `"sealed":false`) {
 		t.Errorf("GET %s = %d %s", url, resp.StatusCode, body)
+	}
+}
+
+// realPrimitives runs the Vault primitives against the real cluster, including a
+// genuine seal and unseal of a node.
+func realPrimitives(t *testing.T, ctx context.Context, rt runtime.Runtime, d product.Deployment) {
+	t.Helper()
+	reg := primitive.NewRegistry()
+	for _, prim := range New(Options{}).Primitives() {
+		if err := reg.Register(prim); err != nil {
+			t.Fatal(err)
+		}
+	}
+	nodes := map[string]primitive.Node{}
+	for _, n := range d.Nodes {
+		nodes[n.Name] = n
+	}
+	env := primitive.Env{
+		Runtime: rt, Nodes: nodes, Creds: map[string]map[string]string{d.Cluster: d.Creds},
+		Redactor: primitive.NewRedactor(d.Creds["rootToken"]),
+	}
+	type m = map[string]any
+	run := func(name string, args m) primitive.Result {
+		res, err := reg.Run(ctx, name, env, args)
+		if err != nil {
+			t.Fatalf("%s %v: %v", name, args, err)
+		}
+		return res
+	}
+	want := func(name string, args m, status primitive.Status) primitive.Result {
+		t.Helper()
+		res := run(name, args)
+		if res.Status != status {
+			t.Errorf("%s %v = %s %q, want %s", name, args, res.Status, res.Message, status)
+		}
+		return res
+	}
+
+	want("vault.status", m{"node": "node-1", "initialized": true, "sealed": false}, primitive.Pass)
+	want("vault.raft-peers", m{"node": "node-1", "servers": 3, "voters": 3}, primitive.Pass)
+	want("vault.expect-no-leader", m{"node": "node-1"}, primitive.Fail) // a healthy cluster has a leader
+	want("vault.init", m{"node": "node-1"}, primitive.Fail)             // it is initialised already
+
+	want("vault.kv-put", m{"node": "node-1", "path": "app/db", "data": m{"user": "ada", "pass": "hunter2"}}, primitive.Pass)
+	want("vault.kv-get", m{"node": "node-2", "path": "app/db", "field": "user", "equals": "ada"}, primitive.Pass)
+	want("vault.kv-get", m{"node": "node-1", "path": "app/db", "field": "pass", "equals": "wrong"}, primitive.Fail)
+	want("vault.cli", m{"node": "node-1", "command": []any{"status"}}, primitive.Pass)
+
+	// Vault only seals the active node, so seal that one for real. The others elect a new
+	// leader, the status primitive sees the node sealed, and the unseal primitive brings it
+	// back as a standby.
+	want("vault.cli", m{"node": "node-1", "command": []any{"operator", "seal"}}, primitive.Pass)
+	want("vault.status", m{"node": "node-1", "sealed": true}, primitive.Pass)
+	want("vault.unseal", m{"node": "node-1"}, primitive.Pass)
+	want("vault.status", m{"node": "node-1", "sealed": false}, primitive.Pass)
+	want("vault.unseal", m{"node": "node-1"}, primitive.Pass) // already unsealed
+
+	// The token never appears in anything the primitives reported.
+	res := run("vault.cli", m{"node": "node-1", "command": []any{"token", "lookup"}})
+	if strings.Contains(res.Evidence, d.Creds["rootToken"]) {
+		t.Error("the root token is in the evidence")
 	}
 }

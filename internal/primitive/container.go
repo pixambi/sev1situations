@@ -34,7 +34,7 @@ func (containerExec) Spec() Spec {
 }
 
 func (containerExec) Run(ctx context.Context, env Env, a Args) (Result, error) {
-	n, err := env.node(a.String("node"))
+	n, err := env.Lookup(a.String("node"))
 	if err != nil {
 		return Result{}, err
 	}
@@ -73,7 +73,7 @@ var argNodes = Arg{Name: "nodes", Type: StringList, Required: true, Help: "The n
 func actOnNodes(ctx context.Context, env Env, names []string, verb string, missingOK bool, op func(context.Context, string) error) (Result, error) {
 	var errs []error
 	for _, name := range names {
-		n, err := env.node(name)
+		n, err := env.Lookup(name)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -145,7 +145,7 @@ func (containerKillProcess) Spec() Spec {
 }
 
 func (containerKillProcess) Run(ctx context.Context, env Env, a Args) (Result, error) {
-	n, err := env.node(a.String("node"))
+	n, err := env.Lookup(a.String("node"))
 	if err != nil {
 		return Result{}, err
 	}
@@ -198,7 +198,7 @@ func (containerCopyIn) Run(ctx context.Context, env Env, a Args) (Result, error)
 
 // copyFile writes bytes to a path in a node.
 func copyFile(ctx context.Context, env Env, node, dest, mode string, data []byte) (Result, error) {
-	n, err := env.node(node)
+	n, err := env.Lookup(node)
 	if err != nil {
 		return Result{}, err
 	}

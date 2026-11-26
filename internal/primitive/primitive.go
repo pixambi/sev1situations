@@ -112,6 +112,12 @@ type Env struct {
 	Run runtime.Run
 	// Nodes are the deployment's nodes by name.
 	Nodes map[string]Node
+	// Creds are the deployment's credentials, by cluster or service name and then
+	// key, for example primary -> rootToken. A product's primitives use them to
+	// act on their own clusters, so a scenario never carries a credential in its
+	// YAML. The engine sets it, and the Redactor removes them from what a
+	// primitive reports.
+	Creds map[string]map[string]string
 	// ReadFile reads a file from the scenario's folder, for example a template
 	// or a fixture. The engine sets it. It may not leave the folder (R-SCN-15).
 	ReadFile func(rel string) ([]byte, error)
@@ -134,4 +140,10 @@ type Primitive interface {
 	// Fail when the condition is not met, and an error only when the primitive
 	// could not run. It must stop when ctx ends.
 	Run(ctx context.Context, env Env, args Args) (Result, error)
+}
+
+// Credential returns one credential of a cluster or service.
+func (e Env) Credential(cluster, key string) (string, bool) {
+	v, ok := e.Creds[cluster][key]
+	return v, ok && v != ""
 }
