@@ -276,7 +276,7 @@ func (r *Runtime) StartContainer(_ context.Context, o runtime.ContainerOptions) 
 }
 
 // Exec implements runtime.Runtime.
-func (r *Runtime) Exec(_ context.Context, id string, cmd []string, o runtime.ExecOptions) (runtime.ExecResult, error) {
+func (r *Runtime) Exec(ctx context.Context, id string, cmd []string, o runtime.ExecOptions) (runtime.ExecResult, error) {
 	r.mu.Lock()
 	if err := r.enter(OpExec); err != nil {
 		r.mu.Unlock()
@@ -291,14 +291,29 @@ func (r *Runtime) Exec(_ context.Context, id string, cmd []string, o runtime.Exe
 	if fn == nil {
 		return runtime.ExecResult{}, nil
 	}
-	res, err := fn(c.info, cmd, o)
-	if o.Detach {
-		// A detached command returns as soon as it has started, so its output
-		// is never seen. The script still runs, which is how a test can make
-		// the process it starts take effect.
-		return runtime.ExecResult{}, nil
+	// Like the real runtime, stop waiting when the context ends, even if the
+	// script is still running.
+	type outcome struct {
+		res runtime.ExecResult
+		err error
 	}
-	return res, err
+	done := make(chan outcome, 1)
+	go func() {
+		res, err := fn(c.info, cmd, o)
+		done <- outcome{res, err}
+	}()
+	select {
+	case out := <-done:
+		if o.Detach {
+			// A detached command returns as soon as it has started, so its output
+			// is never seen. The script still runs, which is how a test can make
+			// the process it starts take effect.
+			return runtime.ExecResult{}, nil
+		}
+		return out.res, out.err
+	case <-ctx.Done():
+		return runtime.ExecResult{}, ctx.Err()
+	}
 }
 
 // Attach implements runtime.Runtime. The terminal echoes what is written to it.

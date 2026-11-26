@@ -137,6 +137,33 @@ func TestDeployARealThreeNodeCluster(t *testing.T) {
 		}
 	}
 
+	// The Cluster tab shows what is really there: live state and role per node, the
+	// credentials flagged secret, and an address that works from this computer.
+	view := p.Describe(ctx, rt, d)
+	sec := view.Sections[0]
+	byLabel := func(fs []product.Fact) map[string]product.Fact {
+		m := map[string]product.Fact{}
+		for _, f := range fs {
+			m[f.Label] = f
+		}
+		return m
+	}
+	cluster := byLabel(sec.Facts)
+	if cluster["Root token"].Value != token || !cluster["Root token"].Secret || cluster["Unseal threshold"].Value != "3 of 5" {
+		t.Errorf("cluster facts = %+v", cluster)
+	}
+	roles := map[string]int{}
+	for _, n := range sec.Nodes {
+		f := byLabel(n.Details)
+		if f["Vault"].Value != "unsealed" || f["Version"].Value != version.Core+" community" {
+			t.Errorf("Describe says %s is %+v", n.Name, f)
+		}
+		roles[f["HA role"].Value]++
+	}
+	if roles["active"] != 1 || roles["standby"] != 2 {
+		t.Errorf("Describe roles = %v, want one active and two standby", roles)
+	}
+
 	// The API answers on the published loopback port, from this computer.
 	if len(d.Published) != 3 {
 		t.Fatalf("published = %+v", d.Published)

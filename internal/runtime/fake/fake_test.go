@@ -349,3 +349,22 @@ func TestDetachedExecStillRunsTheScript(t *testing.T) {
 		t.Errorf("Exec = %+v, %v, ran=%v; want the script to see the detached command and its output discarded", got, err, ran)
 	}
 }
+
+func TestExecStopsWaitingWhenItsContextEnds(t *testing.T) {
+	f := fake.New()
+	c := startOne(t, f, "a")
+	release := make(chan struct{})
+	defer close(release)
+	f.SetExec(func(runtime.Container, []string, runtime.ExecOptions) (runtime.ExecResult, error) {
+		<-release // a command that never answers
+		return runtime.ExecResult{}, nil
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	_, err := f.Exec(ctx, c.ID, []string{"hang"}, runtime.ExecOptions{})
+	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 2*time.Second {
+		t.Errorf("Exec = %v after %s, want it to give up when the context ends, as the real runtime does", err, time.Since(start))
+	}
+}

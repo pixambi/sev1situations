@@ -11,7 +11,6 @@ import (
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
 	"github.com/pixambi/sev1situations/internal/release"
-	"github.com/pixambi/sev1situations/internal/runtime"
 	"github.com/pixambi/sev1situations/internal/settings"
 )
 
@@ -123,16 +122,6 @@ func RequireLicense(s product.Settings, e release.Edition) (string, error) {
 		return "", fmt.Errorf("%w. The %s edition needs one: add it in Settings", ErrNoLicense, e)
 	}
 	return license, nil
-}
-
-// Describe implements product.Product. It is built in T-053.
-func (*Product) Describe(_ context.Context, _ runtime.Runtime, d product.Deployment) product.ClusterView {
-	return product.ClusterView{Sections: []product.Section{{Title: d.Cluster}}}
-}
-
-// LogStreams implements product.Product. It is built in T-053.
-func (*Product) LogStreams(primitive.Node) []product.LogStream {
-	return []product.LogStream{{ID: "operational", Label: "Operational log"}}
 }
 
 // Primitives implements product.Product. They are built in T-054.

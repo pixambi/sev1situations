@@ -27,6 +27,9 @@ type Timing struct {
 	Leader time.Duration
 	// Join is how long the other nodes have to join and the cluster to show every voter.
 	Join time.Duration
+	// Describe is how long the Cluster tab waits for one node to report its state
+	// before showing it as unknown.
+	Describe time.Duration
 }
 
 func (t Timing) withDefaults() Timing {
@@ -41,6 +44,9 @@ func (t Timing) withDefaults() Timing {
 	}
 	if t.Join <= 0 {
 		t.Join = 90 * time.Second
+	}
+	if t.Describe <= 0 {
+		t.Describe = 5 * time.Second
 	}
 	return t
 }
