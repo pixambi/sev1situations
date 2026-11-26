@@ -269,3 +269,30 @@ func TestProblemText(t *testing.T) {
 		t.Errorf("problem text = %q, want it to start with %q", ps[0].Error(), want)
 	}
 }
+
+// argChecking is a primitive set that also checks arguments.
+type argChecking struct {
+	primitives
+	problems map[string][]string
+}
+
+func (a argChecking) CheckArgs(name string, _ map[string]any) []string { return a.problems[name] }
+
+func TestValidateAsksThePrimitivesToCheckArguments(t *testing.T) {
+	set := argChecking{
+		primitives: knownPrimitives,
+		problems:   map[string][]string{"container.remove": {`unknown argument "nodez". container.remove takes: nodes, timeout`}},
+	}
+	ps := validate(t, worked, nil, Options{Primitives: set})
+	if len(ps) != 1 || ps[0].Field != "steps[0].action[0].args" || !strings.Contains(ps[0].Message, `unknown argument "nodez"`) {
+		t.Fatalf("problems = %+v, want the typo reported on the args of steps[0].action[0]", ps)
+	}
+	if want := lineOfNth(worked, "args: { nodes", 1); ps[0].Line != want && ps[0].Line != want-1 {
+		t.Errorf("line = %d, want the line of the call (%d) or its args", ps[0].Line, want)
+	}
+
+	// A set that cannot check arguments still validates names.
+	if ps := validate(t, worked, nil, Options{Primitives: knownPrimitives}); ps != nil {
+		t.Errorf("problems = %+v, want none", ps)
+	}
+}

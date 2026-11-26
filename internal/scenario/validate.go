@@ -17,6 +17,14 @@ type PrimitiveSet interface {
 	Has(name string) bool
 }
 
+// ArgChecker is implemented by a PrimitiveSet that can also check a primitive's
+// arguments, so a typo fails validation and not a live run. Validate uses it
+// when the set provides it.
+type ArgChecker interface {
+	// CheckArgs returns one message per problem with the arguments given to a primitive.
+	CheckArgs(name string, args map[string]any) []string
+}
+
 // Options configures Validate. A nil field skips the checks that need it, which
 // lets the rules be tested one at a time.
 type Options struct {
@@ -329,6 +337,11 @@ func (v *validator) calls(field string, calls []Call) {
 			v.add(f+".primitive", "is required")
 		} else if v.opts.Primitives != nil && !v.opts.Primitives.Has(c.Primitive) {
 			v.add(f+".primitive", "%q is not a known primitive", c.Primitive)
+		}
+		if checker, ok := v.opts.Primitives.(ArgChecker); ok && c.Primitive != "" && v.opts.Primitives.Has(c.Primitive) {
+			for _, msg := range checker.CheckArgs(c.Primitive, c.Args) {
+				v.add(f+".args", "%s", msg)
+			}
 		}
 		v.templates(f+".args", c.Args)
 	}
