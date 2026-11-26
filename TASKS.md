@@ -119,7 +119,7 @@ Each spike ends with a short written result in `spikes/` (not under `docs/`, whi
 | T-030 | [x] `settings` package: file store with `0600` permissions, licenses (masked on read-back), instructor name, `Field` registration for products. | R-SET-1 to R-SET-5, R-QUAL-3 | M | Unit tests, including permissions and masking. |
 | T-031 | [x] `scenario` package: Go types for the scenario model (4.4, 5.4) and the YAML loader with strict decoding. | R-SCN-1, R-SCN-13 | L | A valid scenario loads. Unknown fields fail with file and field names. |
 | T-032 | [x] Validation: Scenario Standard fields, step IDs unique, referenced files exist, parameter types known, primitives exist, templates parse. | R-SCN-13, 4.5 | L | Table tests for every error. |
-| T-033 | Registry: embedded `scenarios/` tree via `go:embed`, user directory loading, duplicate ID handling. | R-SCN-3, R-SCN-16 | M | Adding a folder needs no Go change (test with a fixture scenario). |
+| T-033 | [x] Registry: embedded `scenarios/` tree via `go:embed`, user directory loading, duplicate ID handling. | R-SCN-3, R-SCN-16 | M | Adding a folder needs no Go change (test with a fixture scenario). |
 | T-034 | `primitive` package: interface, registry, result and error semantics, redaction of secrets in messages and evidence, argument validation at load. | 4.5, R-QUAL-3 | L | Contract tests. |
 | T-035 | Templating for arguments (`.Params`, `.Nodes`, `.Creds`, earlier outputs) with validation of unknown values. | 4.5 | M | Tests. |
 | T-036 | Generic primitives: `container.*`, `file.*`, `http.request`, `wait.until`, `assert.*`. | 4.5 | L | Each has tests against the fake runtime. |
