@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0, M1 (except W2) and M2 are done. Done tasks are marked `[x]`.
+**Status:** M0, M1 (except W2) and M2 are done, and M3 is under way (T-030 to T-036). Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -62,7 +62,7 @@ These affect early tasks. Defaults are shown so work is not blocked.
 | T-003 | [x] `cmd/s1s/main.go` and `internal/app`: subcommands `version` and `prereq` using the standard library only (no CLI framework unless justified). | R-APP-1, R-APP-5, R-DEP-1 | M | `s1s version` prints version, commit and date stamped by ldflags. `s1s prereq` reports Podman and Podman machine state. |
 | T-004 | [x] `Taskfile.yml`: `build`, `run`, `test`, `lint`, `vuln`, `test:e2e`, `docs`. (`dev` arrives with the shell in M5.) | 10 | S | Each task runs, or fails clearly if its target does not exist yet. |
 | T-005 | [x] `golangci-lint` config, small and documented. | R-LANG-4 | S | `task lint` passes. |
-| T-006 | CI workflow on a macOS runner: vet, test, lint, `govulncheck`, and `CGO_ENABLED=0` build of the core packages. Dependabot config for Go modules, npm and actions. | 10, R-LANG-2 | M | CI is green on `main`. |
+| T-006 | [x] CI workflow on a macOS runner: vet, test, lint, `govulncheck`, and `CGO_ENABLED=0` build of the core packages. Dependabot config for Go modules, npm and actions. | 10, R-LANG-2 | M | CI is green on `main`. |
 | T-007 | [x] `DEPENDENCIES.md` with the rule for justifying each module and npm package. | R-DEP-1 | S | File exists. |
 | T-008 | [x] `README.md` (what it is, install, first run) and a `CONTRIBUTING.md` stub that points at the definition. | R-CONTRIB-5 | S | Both exist and match the definition. |
 
