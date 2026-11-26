@@ -1,0 +1,48 @@
+id: vault-sandbox
+name: Vault Sandbox
+summary: A Vault cluster to explore or to practise on before a scenario. There is no incident.
+product: vault
+editions: [community, enterprise]
+difficulty: beginner
+estimatedMinutes: 60
+tags: [vault, sandbox, raft]
+objectives:
+  - Get comfortable with the run page, the Cluster and Logs tabs, terminals and node actions.
+  - Explore Vault features freely.
+prerequisites:
+  - None. A Vault Enterprise license in Settings is needed for the Enterprise edition.
+parameters:
+  - id: version
+    type: version
+    product: vault
+    label: Vault version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Community, or Enterprise, which needs a license saved in Settings.
+  - id: nodes
+    type: int
+    default: 3
+    min: 1
+    max: 9
+    label: Node count
+    help: How many Vault nodes to run, from 1 to 9.
+topology:
+  clusters:
+    - name: primary
+      product: vault
+      nodes: 3
+      nodesFrom: nodes
+      storage: raft
+initialState: >-
+  One network and the chosen number of Vault nodes on Raft integrated storage, initialised with
+  five key shares and a threshold of three, unsealed, with the audit log enabled. For Enterprise
+  the license from Settings is applied. The Cluster tab shows the addresses, the root token and
+  the unseal keys.
+references:
+  - title: Vault documentation
+    url: https://developer.hashicorp.com/vault/docs
+  - title: Integrated storage (Raft)
+    url: https://developer.hashicorp.com/vault/docs/configuration/storage/raft

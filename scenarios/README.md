@@ -12,4 +12,4 @@ scenarios/<product>/<name>/
 
 A scenario is self-contained and never reads another scenario's files (R-SCN-15). `s1s scenario validate` checks a folder against the Scenario Standard. See section 3.6 and section 5.4 of the project definition.
 
-No scenario has been written yet. The first, the Vault sandbox, arrives with milestone M4.
+Built-in scenarios so far: the Vault sandbox (`vault/sandbox`).
