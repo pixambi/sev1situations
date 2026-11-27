@@ -56,6 +56,7 @@ a { color: var(--link); } a:hover { color: var(--link-hover); }
 .side .group { display: block; padding: var(--s-2) var(--s-2) 0; font-weight: 600; }
 main:focus { outline: none; }
 .doc { max-width: 52rem; } .doc.narrow { margin: 0 auto; }
+.doc { overflow-wrap: anywhere; } .doc pre, .doc table, .doc .cmd { overflow-wrap: normal; }
 .doc h1 { font-size: 2.25rem; font-weight: 400; margin: 0 0 var(--s-3); }
 .doc h2 { font-size: 1.5rem; font-weight: 400; margin-top: var(--s-5); } .doc h3 { font-size: 1.125rem; font-weight: 600; }
 .lede { font-size: 1.25rem; color: var(--text-secondary); }
@@ -63,6 +64,8 @@ main:focus { outline: none; }
 code { font-family: var(--mono); font-size: 0.875em; background: var(--code-bg); padding: 0.1em 0.3em; }
 pre { background: var(--code-bg); padding: var(--s-3); overflow: auto; border-left: 3px solid var(--border); }
 pre code { padding: 0; background: none; }
+.doc { min-width: 0; }
+.doc table { display: block; overflow-x: auto; max-width: 100%; }
 table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); vertical-align: top; }
 th { background: var(--layer); }
 .cmd { position: relative; } .cmd .copy { position: absolute; top: var(--s-2); right: var(--s-2); }
@@ -82,4 +85,4 @@ th { background: var(--layer); }
 .content-wide { max-width: 60rem; } .release { border-top: 1px solid var(--border); margin-top: var(--s-4); }
 .feedback { margin-top: var(--s-6); padding-top: var(--s-3); border-top: 1px solid var(--border); font-size: 0.875rem; }
 .foot { border-top: 1px solid var(--border); padding: var(--s-3); text-align: center; color: var(--text-secondary); }
-@media (max-width: 800px) { .layout.with-side { grid-template-columns: 1fr; } .side { position: static; } .hero h1 { font-size: 2.25rem; } }
+@media (max-width: 800px) { .layout.with-side { grid-template-columns: minmax(0, 1fr); } .side { position: static; } .hero h1 { font-size: 2.25rem; } }

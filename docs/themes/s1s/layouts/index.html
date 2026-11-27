@@ -2,7 +2,7 @@
 <section class="hero">
   <h1>{{ .Title }}</h1>
   <p class="lede">{{ .Params.tagline }}</p>
-  <p><a class="button" href="{{ "/getting-started/" | relURL }}">Get started</a> <a class="button ghost" href="{{ "/scenarios/" | relURL }}">Browse the scenarios</a></p>
+  <p><a class="button" href="{{ "getting-started/" | relURL }}">Get started</a> <a class="button ghost" href="{{ "scenarios/" | relURL }}">Browse the scenarios</a></p>
 </section>
 <section class="content-wide">{{ .Content }}</section>
 {{ end }}
