@@ -1,0 +1,80 @@
+id: boundary-session-limits
+name: Session Limits
+summary: Connections to a target are refused after the first, and a connection that stays open is dropped after about a minute. Neither is a fault in the controllers, worker or network.
+product: boundary
+editions: [community]
+difficulty: beginner
+estimatedMinutes: 15
+tags: [boundary, targets, sessions, session-connection-limit, session-max-seconds, termination-reason]
+objectives:
+  - Separate the two settings and their symptoms.
+  - Find session_connection_limit and session_max_seconds with boundary targets read.
+  - Read a terminated session and its termination reason with sessions list and sessions read.
+  - Update a TCP target with -session-connection-limit and -session-max-seconds, knowing -1 means unlimited.
+  - Know that limits are copied onto a session when it is authorised, so the fix is proved only with a new session.
+prerequisites:
+  - Boundary concepts such as targets, sessions and connections.
+parameters:
+  - id: version
+    type: version
+    product: boundary
+    label: Boundary version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Only the community edition is available for now.
+topology:
+  clusters:
+    - name: boundary
+      product: boundary
+      nodes: 1
+initialState: >-
+  The Boundary sandbox with one controller: db-node-1, node-1, lb-node-1, worker-node-1 and target-node-1, and the
+  generated org scope, project scope, host catalog, host set and SSH target. The target allows an unlimited number of
+  connections per session and a session of 8 hours. The Cluster tab shows the admin login and password and the IDs.
+failureCreated: >-
+  The target is updated to allow one connection per session and a session of 60 seconds. Nothing else is changed,
+  so the controllers, the worker and the network are healthy. Recoverable by updating the target again.
+successCriteria: >-
+  The target allows more than one connection per session, or no limit, and a session of more than 60 seconds, and a
+  new session can be authorised on it.
+pitfalls:
+  - Sessions that already exist keep the limits they were authorised with, so only a new session proves the fix.
+  - Terminated sessions are hidden from a plain sessions list.
+  - Changing one setting and not the other.
+references:
+  - title: Targets
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/targets
+  - title: Sessions
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/sessions
+steps:
+  - id: apply-the-limits
+    kind: breakage
+    title: Apply the limits
+    guide: steps/apply-the-limits.md
+    resetPoint: true
+    action:
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: target, name: Generated target using host sources, save: target }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [targets, update, tcp, "-id={{ .Outputs.target }}", -session-connection-limit=1, -session-max-seconds=60]
+    verify:
+      - primitive: boundary.target-info
+        args: { node: node-1, field: session_connection_limit, equals: "1" }
+      - primitive: boundary.target-info
+        args: { node: node-1, field: session_max_seconds, equals: "60" }
+  - id: limits-corrected
+    kind: verification
+    title: Limits corrected
+    guide: steps/limits-corrected.md
+    verify:
+      - primitive: boundary.target-info
+        args: { node: node-1, field: session_connection_limit, above: 1 }
+      - primitive: boundary.target-info
+        args: { node: node-1, field: session_max_seconds, above: 60 }
+      - primitive: boundary.authorize-session
+        args: { node: node-1, expect: allowed }

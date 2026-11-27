@@ -72,8 +72,8 @@ func (b *primbed) reply(key string, r runtime.ExecResult) {
 
 func TestEveryBoundaryPrimitiveIsNamedAndDescribed(t *testing.T) {
 	prims := New(Options{}).Primitives()
-	if len(prims) != 5 {
-		t.Fatalf("%d primitives, want the five section 4.5 lists", len(prims))
+	if len(prims) != 6 {
+		t.Fatalf("%d primitives, want the five section 4.5 lists and the lookup", len(prims))
 	}
 	for _, p := range prims {
 		s := p.Spec()
@@ -236,7 +236,19 @@ func TestTargetInfoReadsASettingAndComparesItAsText(t *testing.T) {
 	if res := b.run("boundary.target-info", map[string]any{"save": "all"}); res.Status != primitive.Pass || !strings.Contains(res.Outputs["all"], "session_max_seconds") {
 		t.Errorf("the whole target: %+v", res)
 	}
-	if err := b.runErr("boundary.target-info", map[string]any{"equals": "1"}); err == nil || !strings.Contains(err.Error(), "needs a field") {
+	if res := b.run("boundary.target-info", map[string]any{"field": "session_max_seconds", "above": 60}); res.Status != primitive.Pass {
+		t.Errorf("above: %+v", res)
+	}
+	if res := b.run("boundary.target-info", map[string]any{"field": "session_connection_limit", "above": 1}); res.Status != primitive.Pass {
+		t.Errorf("no limit counts as above: %+v", res)
+	}
+	if res := b.run("boundary.target-info", map[string]any{"field": "session_max_seconds", "above": 30000}); res.Status != primitive.Fail || !strings.Contains(res.Message, "above 30000") {
+		t.Errorf("not above: %+v", res)
+	}
+	if err := b.runErr("boundary.target-info", map[string]any{"field": "session_max_seconds", "above": 1, "equals": "1"}); err == nil {
+		t.Error("equals and above together were accepted")
+	}
+	if err := b.runErr("boundary.target-info", map[string]any{"equals": "1"}); err == nil || !strings.Contains(err.Error(), "need a field") {
 		t.Errorf("equals with no field: %v", err)
 	}
 }
@@ -292,5 +304,32 @@ func TestNoPasswordOrTokenReachesWhatTheInstructorIsShown(t *testing.T) {
 	}
 	if !strings.Contains(res.Evidence, "the admin password is") {
 		t.Error("the rest of the output was lost")
+	}
+}
+
+func TestLookupFindsAnIDByNameAndKeepsIt(t *testing.T) {
+	b := newPrimbed(t)
+	b.reply("scopes list", runtime.ExecResult{Stdout: `{"items":[{"id":"o_1","name":"Generated org scope"},{"id":"p_1","name":"Generated project scope"}]}`})
+	res := b.run("boundary.lookup", map[string]any{"kind": "scope", "name": "Generated project scope", "save": "project"})
+	if res.Status != primitive.Pass || res.Outputs["project"] != "p_1" {
+		t.Errorf("found: %+v", res)
+	}
+	if res := b.run("boundary.lookup", map[string]any{"kind": "scope", "name": "Nope", "save": "x"}); res.Status != primitive.Fail || !strings.Contains(res.Message, `no scope called "Nope"`) {
+		t.Errorf("missing: %+v", res)
+	}
+	if err := b.runErr("boundary.lookup", map[string]any{"kind": "widget", "name": "x", "save": "x"}); err == nil {
+		t.Error("an unknown kind was accepted")
+	}
+}
+
+func TestLookupFindsAnAccountByItsLoginNameUnderItsAuthMethod(t *testing.T) {
+	b := newPrimbed(t)
+	b.reply("accounts list", runtime.ExecResult{Stdout: `{"items":[{"id":"acctpw_1","attributes":{"login_name":"admin"}},{"id":"acctpw_2","attributes":{"login_name":"jsmith"}}]}`})
+	res := b.run("boundary.lookup", map[string]any{"kind": "account", "parent": "ampw_sim", "name": "jsmith", "save": "acct"})
+	if res.Status != primitive.Pass || res.Outputs["acct"] != "acctpw_2" {
+		t.Errorf("found: %+v", res)
+	}
+	if err := b.runErr("boundary.lookup", map[string]any{"kind": "account", "name": "jsmith", "save": "acct"}); err == nil || !strings.Contains(err.Error(), "parent is needed") {
+		t.Errorf("without an auth method: %v", err)
 	}
 }

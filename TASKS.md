@@ -213,8 +213,8 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 | T-101 | [x] (Built inside the Boundary product, which runs the database and the load balancer from their own images, and not as topology services.) Supporting services: Postgres and HAProxy as third-party images. | R-RUN-5 | M | Tests. |
 | T-102 | [x] Boundary `Describe` and `LogStreams` (5.5), primitives (`cli`, `authorize-session`, `session-info`, `target-info`, `recordings-list`). | 4.5, 5.5 | L | Tests. |
 | T-103 | [x] `scenarios/boundary/sandbox/` | 5.3.8 | M | Runs end to end. |
-| T-104 | Authorize-Session 403 | 5.3.9 | M | Done per R-CONTRIB-4. |
-| T-105 | Session Limits | 5.3.10 | M | Done per R-CONTRIB-4. |
+| T-104 | [x] Authorize-Session 403 | 5.3.9 | M | Done per R-CONTRIB-4. |
+| T-105 | [x] Session Limits | 5.3.10 | M | Done per R-CONTRIB-4. |
 | T-106 | `product/minio` and Session Recording Storage (Enterprise only, `bsr` KMS, storage buckets, `minio.mc`) | 5.3.11 | L | Done per R-CONTRIB-4. |
 
 ---

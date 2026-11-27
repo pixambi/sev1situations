@@ -1,0 +1,122 @@
+id: boundary-authorize-session-403
+name: Authorize-Session 403
+summary: A user can sign in and see a target but cannot connect. Every attempt fails with PermissionDenied (403).
+product: boundary
+editions: [community]
+difficulty: beginner
+estimatedMinutes: 15
+tags: [boundary, iam, roles, grants, authorize-session, "403", permission-denied]
+objectives:
+  - Read a 403 from authorize-session as an authorisation failure, distinct from an authentication failure or a 404.
+  - Trace a permission from user to roles to grants and grant scopes.
+  - Write grant strings such as ids=<ttcp_id>;actions=authorize-session.
+  - Understand that grant scopes decide where a role applies.
+  - Verify the fix with a new session.
+prerequisites:
+  - Boundary concepts such as scopes, targets, users, roles and grants.
+parameters:
+  - id: version
+    type: version
+    product: boundary
+    label: Boundary version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Only the community edition is available for now.
+topology:
+  clusters:
+    - name: boundary
+      product: boundary
+      nodes: 1
+initialState: >-
+  The Boundary sandbox with one controller: db-node-1, node-1, lb-node-1, worker-node-1 and target-node-1, and the
+  generated org scope, project scope, host catalog, host set and SSH target. The Cluster tab shows the admin login and
+  password and the IDs.
+failureCreated: >-
+  A user jsmith is created with a password account that uses the same password as the admin, and a role ssh-readonly in the org scope with the project as its
+  grant scope. The role grants list and read on targets and does not grant authorize-session. jsmith is its principal.
+  Recoverable by granting authorize-session to a role that applies to jsmith.
+successCriteria: >-
+  jsmith is allowed to authorize a session on the SSH target.
+pitfalls:
+  - Granting in the wrong scope, so the role does not apply to the project that holds the target.
+  - Confusing read with authorize-session.
+  - Not adding jsmith as a principal of the role that grants it.
+references:
+  - title: Roles
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/roles
+  - title: Permissions and grant strings
+    url: https://developer.hashicorp.com/boundary/docs/concepts/security/permissions
+  - title: Sessions
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/sessions
+steps:
+  - id: create-permission-problem
+    kind: breakage
+    title: Create the permission problem
+    guide: steps/create-permission-problem.md
+    resetPoint: true
+    action:
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: auth-method, name: Generated global scope initial password auth method, save: authMethod }
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: scope, name: Generated org scope, save: org }
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: scope, name: Generated project scope, save: project }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [users, create, -name=jsmith, -scope-id=global]
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: user, name: jsmith, save: user }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [accounts, create, password, "-auth-method-id={{ .Outputs.authMethod }}", -login-name=jsmith, -password=env://JSMITH_PASSWORD]
+          env: { JSMITH_PASSWORD: "{{ .Creds.boundary.adminPassword }}" }
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: account, parent: "{{ .Outputs.authMethod }}", name: jsmith, save: account }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [users, add-accounts, "-id={{ .Outputs.user }}", "-account={{ .Outputs.account }}"]
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [roles, create, -name=ssh-readonly, "-scope-id={{ .Outputs.org }}"]
+      - primitive: boundary.lookup
+        args: { node: node-1, kind: role, name: ssh-readonly, save: role }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [roles, add-grant-scopes, "-id={{ .Outputs.role }}", "-grant-scope-id={{ .Outputs.project }}"]
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [roles, add-grants, "-id={{ .Outputs.role }}", "-grant=ids=*;type=target;actions=list,read"]
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          command: [roles, add-principals, "-id={{ .Outputs.role }}", "-principal={{ .Outputs.user }}"]
+    verify:
+      - primitive: boundary.authorize-session
+        args: { node: node-1, as: jsmith, password: "{{ .Creds.boundary.adminPassword }}", expect: denied }
+      - primitive: boundary.cli
+        args:
+          node: node-1
+          as: jsmith
+          password: "{{ .Creds.boundary.adminPassword }}"
+          command: [targets, list, -recursive]
+          contains: Generated target using host sources
+  - id: access-restored
+    kind: verification
+    title: Access restored
+    guide: steps/access-restored.md
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: boundary.authorize-session
+            args: { node: node-1, as: jsmith, password: "{{ .Creds.boundary.adminPassword }}", expect: allowed }

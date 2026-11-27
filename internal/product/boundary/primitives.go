@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 // as the admin or as a named user, and pass the token to Boundary in the environment and never on a command line, so a
 // scenario carries no credential for the admin.
 func (*Product) Primitives() []primitive.Primitive {
-	return []primitive.Primitive{cliPrim{}, authorizeSession{}, targetInfo{}, sessionInfo{}, recordingsList{}}
+	return []primitive.Primitive{cliPrim{}, lookup{}, authorizeSession{}, targetInfo{}, sessionInfo{}, recordingsList{}}
 }
 
 const primitiveTimeout = 45 * time.Second
@@ -313,14 +314,18 @@ func (targetInfo) Spec() primitive.Spec {
 			nodeArg, asArg, passwordArg, targetArg,
 			{Name: "field", Type: primitive.String, Help: "If set, the field of the target to read, for example session_max_seconds. Without it the target is read as JSON."},
 			{Name: "equals", Type: primitive.String, Help: "If set, the field's value must equal this. It needs a field."},
+			{Name: "above", Type: primitive.Int, Help: "If set, the field's value must be a number above this, or -1, which Boundary uses for no limit. It needs a field."},
 			saveArg,
 		},
 	}
 }
 
 func (targetInfo) Run(ctx context.Context, env primitive.Env, a primitive.Args) (primitive.Result, error) {
-	if a.Has("equals") && !a.Has("field") {
-		return primitive.Result{}, errors.New("equals needs a field to compare")
+	if (a.Has("equals") || a.Has("above")) && !a.Has("field") {
+		return primitive.Result{}, errors.New("equals and above need a field to compare")
+	}
+	if a.Has("equals") && a.Has("above") {
+		return primitive.Result{}, errors.New("use equals or above, not both")
 	}
 	s, err := signedIn(ctx, env, a)
 	if err != nil {
@@ -367,6 +372,13 @@ func (targetInfo) Run(ctx context.Context, env primitive.Env, a primitive.Args) 
 	if a.Has("equals") && got != a.String("equals") {
 		out.Status, out.Message = primitive.Fail, fmt.Sprintf("%s of target %s is %s, expected %s", field, id, got, a.String("equals"))
 		return out, nil
+	}
+	if a.Has("above") {
+		n, err := strconv.ParseInt(got, 10, 64)
+		if err != nil || (n != -1 && n <= int64(a.Int("above"))) {
+			out.Status, out.Message = primitive.Fail, fmt.Sprintf("%s of target %s is %s, expected a number above %d or -1 for no limit", field, id, got, a.Int("above"))
+			return out, nil
+		}
 	}
 	out.Status, out.Message = primitive.Pass, fmt.Sprintf("%s of target %s is %s", field, id, got)
 	return out, nil
@@ -497,4 +509,77 @@ func (recordingsList) Run(ctx context.Context, env primitive.Env, a primitive.Ar
 		return fail(res.Stdout, "%d recording(s) found, expected at least %d", matched, want), nil
 	}
 	return pass("%d recording(s) found", matched), nil
+}
+
+// boundary.lookup ---------------------------------------------------------------
+
+// lookupKinds are what lookup can find, and the command that lists each. A scope is listed from the global scope and
+// the rest from every scope below it.
+var lookupKinds = map[string][]string{
+	"scope":       {"scopes", "list", "-scope-id=global", "-recursive"},
+	"auth-method": {"auth-methods", "list", "-scope-id=global", "-recursive"},
+	"target":      {"targets", "list", "-scope-id=global", "-recursive"},
+	"user":        {"users", "list", "-scope-id=global", "-recursive"},
+	"role":        {"roles", "list", "-scope-id=global", "-recursive"},
+	"account":     {"accounts", "list"}, // listed under an auth method, which the parent argument names
+}
+
+type lookup struct{}
+
+func (lookup) Spec() primitive.Spec {
+	return primitive.Spec{
+		Name:    "boundary.lookup",
+		Summary: "Finds the ID of something Boundary made, such as a scope, auth method, target, user or role, by its name, and keeps it for later steps. It changes nothing and is safe to run again.",
+		Timeout: primitiveTimeout,
+		Args: []primitive.Arg{
+			nodeArg, asArg, passwordArg,
+			{Name: "kind", Type: primitive.String, Required: true, Help: "What to find: scope, auth-method, target, user or role."},
+			{Name: "name", Type: primitive.String, Required: true, Help: "Its name, exactly. For an account, its login name."},
+			{Name: "parent", Type: primitive.String, Help: "For an account, the ID of its auth method."},
+			{Name: "save", Type: primitive.String, Required: true, Help: "The name the ID is kept under for later steps, as .Outputs.<name>."},
+		},
+	}
+}
+
+func (lookup) Run(ctx context.Context, env primitive.Env, a primitive.Args) (primitive.Result, error) {
+	cmd, ok := lookupKinds[a.String("kind")]
+	if !ok {
+		return primitive.Result{}, fmt.Errorf("kind must be scope, auth-method, target, user, role or account, not %q", a.String("kind"))
+	}
+	cmd = append([]string{}, cmd...)
+	if a.String("kind") == "account" {
+		if a.String("parent") == "" {
+			return primitive.Result{}, errors.New("an account is found under its auth method, so parent is needed")
+		}
+		cmd = append(cmd, "-auth-method-id="+a.String("parent"))
+	}
+	s, err := signedIn(ctx, env, a)
+	if err != nil {
+		return primitive.Result{}, err
+	}
+	res, err := s.run(ctx, append(cmd, "-format=json")...)
+	if err != nil {
+		return primitive.Result{}, err
+	}
+	if res.ExitCode != 0 {
+		return fail(res.Stderr+res.Stdout, "could not list the %ss: %s", a.String("kind"), firstLine(res.Stderr)), nil
+	}
+	var list struct {
+		Items []struct {
+			ID         string `json:"id"`
+			Name       string `json:"name"`
+			Attributes struct {
+				LoginName string `json:"login_name"`
+			} `json:"attributes"`
+		} `json:"items"`
+	}
+	if json.Unmarshal([]byte(res.Stdout), &list) != nil {
+		return primitive.Result{}, errors.New("the list could not be read: the answer was not what Boundary returns")
+	}
+	for _, it := range list.Items {
+		if it.Name == a.String("name") || (it.Name == "" && it.Attributes.LoginName == a.String("name")) {
+			return primitive.Result{Status: primitive.Pass, Message: fmt.Sprintf("%s %q is %s", a.String("kind"), it.Name, it.ID), Outputs: map[string]string{a.String("save"): it.ID}}, nil
+		}
+	}
+	return fail(res.Stdout, "there is no %s called %q", a.String("kind"), a.String("name")), nil
 }
