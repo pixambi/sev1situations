@@ -211,7 +211,7 @@ func (c *cluster) prepare(ctx context.Context, n primitive.Node) error {
 	}
 	files := []runtime.File{
 		{Path: binaryPath, Mode: 0o755, Size: info.Size(), Content: bin},
-		fileOf(configPath, 0o644, nodeConfig{NodeID: n.Name, IP: n.IP, Enterprise: IsEnterprise(c.spec.Edition)}.render()),
+		fileOf(configPath, 0o644, nodeConfig{NodeID: n.Name, IP: n.IP, Enterprise: IsEnterprise(c.spec.Edition), Seal: c.spec.Seal}.render()),
 	}
 	if c.license != "" {
 		// Owner-only, and only in the containers that need it (R-SET-3).
@@ -238,26 +238,43 @@ func (c *cluster) bootstrap(ctx context.Context, d *product.Deployment) error {
 		return err
 	}
 
+	// A cluster that unseals itself through another Vault is given recovery keys, which cannot unseal
+	// it, in place of unseal keys.
+	auto := c.spec.Seal != nil
+	share, threshold := "-key-shares=", "-key-threshold="
+	if auto {
+		share, threshold = "-recovery-shares=", "-recovery-threshold="
+	}
 	c.say("initialising %s: %d key shares, threshold %d", first.Name, keyShares, keyThreshold)
 	res, err := c.vault(ctx, first, "", "operator", "init",
-		"-key-shares="+strconv.Itoa(keyShares), "-key-threshold="+strconv.Itoa(keyThreshold), "-format=json")
+		share+strconv.Itoa(keyShares), threshold+strconv.Itoa(keyThreshold), "-format=json")
 	if err != nil || res.ExitCode != 0 {
 		// The output holds the keys, so only the exit code is reported.
 		return fmt.Errorf("initialise Vault on %s: %w", first.Name, execProblem(runtime.ExecResult{ExitCode: res.ExitCode}, err))
 	}
-	keys, err := parseInit(res.Stdout)
+	keys, err := parseInit(res.Stdout, auto)
 	if err != nil {
 		return fmt.Errorf("initialise Vault on %s: %w", first.Name, err)
 	}
-	for i, k := range keys.UnsealKeys {
-		d.Creds["unsealKey"+strconv.Itoa(i+1)] = k
-	}
 	d.Creds["rootToken"] = keys.RootToken
-	d.State["unsealThreshold"] = strconv.Itoa(keyThreshold)
-	d.State["unsealKeys"] = strconv.Itoa(len(keys.UnsealKeys))
+	if auto {
+		for i, k := range keys.RecoveryKeys {
+			d.Creds["recoveryKey"+strconv.Itoa(i+1)] = k
+		}
+		d.Creds["sealToken"] = c.spec.Seal.Transit.Token
+		d.State["seal"] = c.spec.Seal.Type
+		d.State["sealAddress"] = c.spec.Seal.Transit.Address
+		d.State["recoveryThreshold"] = strconv.Itoa(keyThreshold)
+		d.State["recoveryKeys"] = strconv.Itoa(len(keys.RecoveryKeys))
+	} else {
+		for i, k := range keys.UnsealKeys {
+			d.Creds["unsealKey"+strconv.Itoa(i+1)] = k
+		}
+		d.State["unsealThreshold"] = strconv.Itoa(keyThreshold)
+		d.State["unsealKeys"] = strconv.Itoa(len(keys.UnsealKeys))
+	}
 
-	c.say("unsealing %s", first.Name)
-	if err := c.unseal(ctx, first, keys.UnsealKeys); err != nil {
+	if err := c.opened(ctx, first, keys.UnsealKeys); err != nil {
 		return err
 	}
 	c.say("waiting for %s to become the active node", first.Name)
@@ -298,8 +315,7 @@ func (c *cluster) join(ctx context.Context, d *product.Deployment) error {
 			return err
 		}
 
-		c.say("unsealing %s", n.Name)
-		if err := c.unseal(ctx, n, keys); err != nil {
+		if err := c.opened(ctx, n, keys); err != nil {
 			return err
 		}
 	}
@@ -340,6 +356,29 @@ func unsealKeys(d *product.Deployment) []string {
 		}
 		keys = append(keys, k)
 	}
+}
+
+// recoveryKeys returns the recovery keys held in the deployment, in order.
+func recoveryKeys(d *product.Deployment) []string {
+	var keys []string
+	for i := 1; ; i++ {
+		k, ok := d.Creds["recoveryKey"+strconv.Itoa(i)]
+		if !ok {
+			return keys
+		}
+		keys = append(keys, k)
+	}
+}
+
+// opened gets a node unsealed. With key shares that means supplying the threshold number of keys. With a
+// seal in another Vault the node unseals itself, so it only waits for that to happen.
+func (c *cluster) opened(ctx context.Context, n primitive.Node, keys []string) error {
+	if c.spec.Seal != nil {
+		c.say("waiting for %s to unseal itself through %s", n.Name, c.spec.Seal.Transit.Address)
+		return c.waitStatus(ctx, n, c.p.timing.NodeReady, func(s status) bool { return !s.Sealed }, "unseal itself")
+	}
+	c.say("unsealing %s", n.Name)
+	return c.unseal(ctx, n, keys)
 }
 
 // unseal supplies the threshold number of keys to a node.

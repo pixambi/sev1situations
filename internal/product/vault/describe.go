@@ -74,6 +74,20 @@ func clusterFacts(d product.Deployment) []product.Fact {
 	if len(keys) > 0 {
 		facts = append(facts, product.Fact{Label: "Unseal threshold", Value: fmt.Sprintf("%s of %d", d.State["unsealThreshold"], len(keys))})
 	}
+	if d.State["seal"] != "" {
+		// An auto-unsealed cluster has recovery keys, which cannot unseal it, and a token that reaches the seal.
+		facts = append(facts, product.Fact{Label: "Seal", Value: d.State["seal"] + " through " + d.State["sealAddress"]})
+		if t, ok := d.Creds["sealToken"]; ok {
+			facts = append(facts, product.Fact{Label: "Seal token", Value: t, Secret: true})
+		}
+		rkeys := recoveryKeys(&d)
+		for i, k := range rkeys {
+			facts = append(facts, product.Fact{Label: "Recovery key " + strconv.Itoa(i+1), Value: k, Secret: true})
+		}
+		if len(rkeys) > 0 {
+			facts = append(facts, product.Fact{Label: "Recovery threshold", Value: fmt.Sprintf("%s of %d", d.State["recoveryThreshold"], len(rkeys))})
+		}
+	}
 	return facts
 }
 

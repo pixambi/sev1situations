@@ -36,9 +36,16 @@ type Product struct {
 	Specs []product.DeploySpec
 	// Revived records the nodes Revive was asked for.
 	Revived []string
+	// SealFor records the deployments ProvideSeal was asked to prepare.
+	SealFor []product.Deployment
+	// SealErr, if set, makes ProvideSeal fail.
+	SealErr error
 }
 
-var _ product.Product = (*Product)(nil)
+var (
+	_ product.Product      = (*Product)(nil)
+	_ product.SealProvider = (*Product)(nil)
+)
 
 // New returns a fake product with the given name.
 func New(name string) *Product { return &Product{name: name} }
@@ -94,6 +101,17 @@ func (p *Product) Deploy(ctx context.Context, rt runtime.Runtime, spec product.D
 		return d, p.DeployErr
 	}
 	return d, nil
+}
+
+// ProvideSeal implements product.SealProvider, so the fake can stand in for a product that unseals others.
+func (p *Product) ProvideSeal(_ context.Context, _ runtime.Runtime, d product.Deployment) (product.SealSpec, error) {
+	p.SealFor = append(p.SealFor, d)
+	if p.SealErr != nil {
+		return product.SealSpec{}, p.SealErr
+	}
+	return product.SealSpec{Type: "transit", Transit: product.TransitSeal{
+		Address: "http://" + d.Nodes[0].IP + ":8200", Token: "hvs.seal-token", MountPath: "transit/", KeyName: "autounseal",
+	}}, nil
 }
 
 // Describe implements product.Product.

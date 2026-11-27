@@ -134,6 +134,21 @@ type Cluster struct {
 	NodesFrom string `yaml:"nodesFrom"`
 	// Storage is the storage backend, for example raft.
 	Storage string `yaml:"storage"`
+	// Seal, if set, says the cluster is unsealed by another cluster of the scenario
+	// instead of by key shares, as with a transit seal.
+	Seal *Seal `yaml:"seal"`
+}
+
+// SealTransit is the seal type that uses another Vault's transit secrets engine.
+const SealTransit = "transit"
+
+// Seal says how a cluster is unsealed automatically.
+type Seal struct {
+	// Type is the kind of seal, transit.
+	Type string `yaml:"type"`
+	// Provider is the name of the cluster that provides the seal, for example the
+	// "KMS" Vault. It is deployed first.
+	Provider string `yaml:"provider"`
 }
 
 // Service is a supporting service next to the clusters.
@@ -211,4 +226,38 @@ func (c Cluster) NodeCount(params map[string]any) int {
 		}
 	}
 	return c.Nodes
+}
+
+// DeployOrder returns the indexes of the topology's clusters in the order they must be
+// deployed: a cluster that provides a seal comes before the clusters it unseals, and
+// otherwise the order is the topology's. Nodes keep the names their topology position gives
+// them (section 3.6.1), whatever the order they are deployed in. It returns the topology's
+// order for a scenario that fails validation, which would be refused before this is used.
+func (s *Scenario) DeployOrder() []int {
+	cs := s.Topology.Clusters
+	index := map[string]int{}
+	for i, c := range cs {
+		index[c.Name] = i
+	}
+	done := make([]bool, len(cs))
+	order := make([]int, 0, len(cs))
+	var visit func(i int, depth int)
+	visit = func(i int, depth int) {
+		if done[i] || depth > len(cs) {
+			return
+		}
+		if p := cs[i].Seal; p != nil {
+			if j, ok := index[p.Provider]; ok && j != i {
+				visit(j, depth+1)
+			}
+		}
+		if !done[i] {
+			done[i] = true
+			order = append(order, i)
+		}
+	}
+	for i := range cs {
+		visit(i, 0)
+	}
+	return order
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/pixambi/sev1situations/internal/product"
 )
 
 // Paths and ports inside a Vault node's container.
@@ -34,6 +36,9 @@ type nodeConfig struct {
 	IP string
 	// Enterprise adds the license path.
 	Enterprise bool
+	// Seal, if set, adds a seal stanza so the node unseals itself with another Vault's
+	// transit engine.
+	Seal *product.SealSpec
 }
 
 // render writes the node's Vault configuration. Clustering is done by the
@@ -53,6 +58,10 @@ func (c nodeConfig) render() string {
 		fmt.Fprintf(&b, "license_path = %q\n", licensePath)
 	}
 	b.WriteString("\n")
+	if c.Seal != nil && c.Seal.Type == "transit" {
+		t := c.Seal.Transit
+		fmt.Fprintf(&b, "seal \"transit\" {\n  address    = %q\n  token      = %q\n  key_name   = %q\n  mount_path = %q\n}\n\n", t.Address, t.Token, t.KeyName, t.MountPath)
+	}
 	fmt.Fprintf(&b, "storage \"raft\" {\n  path    = %q\n  node_id = %q\n}\n\n", dataDir, c.NodeID)
 	fmt.Fprintf(&b, "listener \"tcp\" {\n  address         = \"0.0.0.0:%d\"\n  cluster_address = \"0.0.0.0:%d\"\n  tls_disable     = true\n}\n", apiPort, clusterPort)
 	return b.String()
@@ -102,17 +111,25 @@ func parseStatus(out string) (status, error) {
 // initResult is the part of `vault operator init -format=json` we use.
 type initResult struct {
 	UnsealKeys []string `json:"unseal_keys_b64"`
-	RootToken  string   `json:"root_token"`
+	// RecoveryKeys are what an auto-unsealed cluster is given instead of unseal keys.
+	RecoveryKeys []string `json:"recovery_keys_b64"`
+	RootToken    string   `json:"root_token"`
 }
 
-func parseInit(out string) (initResult, error) {
+// parseInit reads the result of initialising a node. A cluster that unseals itself returns recovery keys,
+// and one that does not returns unseal keys, so which are needed depends on auto.
+func parseInit(out string, auto bool) (initResult, error) {
 	var r initResult
 	// The output is not echoed in the error: it holds the keys and the root token.
 	if err := json.Unmarshal([]byte(out), &r); err != nil {
 		return r, fmt.Errorf("read the output of vault operator init: it is not valid JSON")
 	}
-	if len(r.UnsealKeys) < keyThreshold || r.RootToken == "" {
-		return r, fmt.Errorf("vault operator init returned %d unseal keys and no usable root token", len(r.UnsealKeys))
+	keys := r.UnsealKeys
+	if auto {
+		keys = r.RecoveryKeys
+	}
+	if len(keys) < keyThreshold || r.RootToken == "" {
+		return r, fmt.Errorf("vault operator init returned %d keys and no usable root token", len(keys))
 	}
 	return r, nil
 }

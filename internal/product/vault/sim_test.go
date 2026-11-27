@@ -15,6 +15,8 @@ const (
 	simLog   = "2026-11-26T09:00:00Z [INFO] core: security barrier not initialized\n2026-11-26T09:00:01Z [ERROR] storage: boom"
 )
 
+const simSealToken = "hvs.SimulatedSealToken"
+
 var simKeys = []string{"KEY-ONE-aaaa", "KEY-TWO-bbbb", "KEY-THREE-cccc", "KEY-FOUR-dddd", "KEY-FIVE-eeee"}
 
 // call records one vault command.
@@ -30,6 +32,8 @@ type simNode struct {
 	initialized bool
 	sealed      bool
 	progress    int
+	// auto is set when the node's configuration has a transit seal, so it unseals itself.
+	auto bool
 }
 
 // sim plays Vault behind the fake runtime, just enough to deploy a cluster.
@@ -53,6 +57,8 @@ type sim struct {
 	neverStart   map[string]bool // by node name
 	joinFailures int
 	initFails    bool
+	// badToken makes `token create` print something that is not a token, which holds a secret-looking string.
+	badToken bool
 }
 
 func newSim(rt *rtfake.Runtime) *sim {
@@ -96,6 +102,13 @@ func (s *sim) exec(c runtime.Container, cmd []string, o runtime.ExecOptions) (ru
 			_, hasBinary := s.rt.File(c.ID, binaryPath)
 			if hasConfig && hasBinary && !s.neverStart[n.name] {
 				n.started = true
+				if f, ok := s.rt.File(c.ID, configPath); ok {
+					n.auto = strings.Contains(string(f.Content), `seal "transit"`)
+				}
+				// A node that has been through init or join and starts with a seal opens by itself.
+				if n.auto && n.initialized {
+					n.sealed = false
+				}
 			}
 		}
 		return ok(), nil
@@ -130,6 +143,32 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 		}
 		return runtime.ExecResult{ExitCode: code, Stdout: string(b)}
 
+	// What preparing a provider of a transit seal runs.
+	case "secrets":
+		if !hasToken {
+			return simFail(2, "permission denied")
+		}
+		return ok()
+	case "write":
+		if !hasToken {
+			return simFail(2, "permission denied")
+		}
+		return ok()
+	case "policy":
+		if !hasToken {
+			return simFail(2, "permission denied")
+		}
+		return ok()
+	case "token":
+		if !hasToken {
+			return simFail(2, "permission denied")
+		}
+		if s.badToken {
+			return runtime.ExecResult{Stdout: "SECRET-TOKEN-OUTPUT not json"}
+		}
+		b, _ := json.Marshal(map[string]any{"auth": map[string]any{"client_token": simSealToken}})
+		return runtime.ExecResult{Stdout: string(b)}
+
 	case "audit":
 		if !hasToken {
 			return simFail(2, "permission denied")
@@ -148,10 +187,23 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 			}
 			s.initialized, n.initialized = true, true
 			s.voters = []string{c.ID}
+			if strings.Contains(strings.Join(args, " "), "-recovery-shares=") {
+				// An auto-unsealed cluster gets recovery keys, and opens by itself.
+				if !n.auto {
+					return simFail(2, "recovery keys need a seal that is not shamir")
+				}
+				n.sealed = false
+				s.leader = c.ID
+				b, _ := json.Marshal(map[string]any{"recovery_keys_b64": simKeys, "root_token": simToken})
+				return runtime.ExecResult{Stdout: string(b)}
+			}
 			b, _ := json.Marshal(map[string]any{"unseal_keys_b64": simKeys, "root_token": simToken})
 			return runtime.ExecResult{Stdout: string(b)}
 
 		case "unseal":
+			if n.auto {
+				return simFail(2, "unseal operation is not supported: this Vault is auto-unsealed")
+			}
 			valid := false
 			for _, k := range simKeys {
 				valid = valid || k == args[2]
@@ -178,6 +230,9 @@ func (s *sim) vault(c runtime.Container, n *simNode, cmd []string, o runtime.Exe
 					return simFail(2, "leader not ready")
 				}
 				n.initialized = true
+				if n.auto {
+					n.sealed = false
+				}
 				s.dropVoterNamed(n.name) // a node that rejoins replaces its old membership
 				s.voters = append(s.voters, c.ID)
 				if s.promoteAfter > 0 {

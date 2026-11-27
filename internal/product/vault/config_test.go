@@ -77,19 +77,19 @@ func TestParseStatusAndRole(t *testing.T) {
 
 func TestParseInit(t *testing.T) {
 	good := `{"unseal_keys_b64":["a","b","c","d","e"],"root_token":"hvs.root"}`
-	r, err := parseInit(good)
+	r, err := parseInit(good, false)
 	if err != nil || len(r.UnsealKeys) != 5 || r.RootToken != "hvs.root" {
 		t.Errorf("init = %+v, %v", r, err)
 	}
 
 	for _, bad := range []string{`{"unseal_keys_b64":["a"],"root_token":"hvs.root"}`, `{"unseal_keys_b64":["a","b","c"],"root_token":""}`} {
-		if _, err := parseInit(bad); err == nil {
+		if _, err := parseInit(bad, false); err == nil {
 			t.Errorf("parseInit(%s) succeeded", bad)
 		}
 	}
 
 	// The keys and the token must not appear in the error text.
-	_, err = parseInit(`{"unseal_keys_b64":["SECRETKEY1"],"root_token":"hvs.SECRET"` /* truncated */)
+	_, err = parseInit(`{"unseal_keys_b64":["SECRETKEY1"],"root_token":"hvs.SECRET"` /* truncated */, false)
 	if err == nil || strings.Contains(err.Error(), "SECRET") {
 		t.Errorf("error = %v, want one that does not echo the output (R-QUAL-3)", err)
 	}

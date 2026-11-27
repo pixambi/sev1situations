@@ -87,7 +87,10 @@ func (d *Deployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario.Sce
 		Creds:   map[string]map[string]string{},
 		Actions: map[string][]engine.NodeAction{},
 	}
-	for i, c := range sc.Topology.Clusters {
+	// A cluster that provides a seal is deployed before the clusters it unseals. Nodes keep the names their
+	// position in the topology gives them, whatever order they are deployed in.
+	for _, i := range sc.DeployOrder() {
+		c := sc.Topology.Clusters[i]
 		p, ok := d.Products.Get(c.Product)
 		if !ok {
 			return engine.Deployment{}, fmt.Errorf("cluster %q uses the product %q, which is not registered", c.Name, c.Product)
@@ -119,6 +122,13 @@ func (d *Deployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario.Sce
 		if i > 0 {
 			spec.NamePrefix = c.Name // later clusters name their nodes <cluster>-node-N (3.6.1)
 		}
+		if c.Seal != nil {
+			seal, err := d.sealFor(ctx, state, c)
+			if err != nil {
+				return engine.Deployment{}, fmt.Errorf("cluster %q: %w", c.Name, err)
+			}
+			spec.Seal = &seal
+		}
 
 		dep, err := p.Deploy(ctx, d.Runtime, spec)
 		cs := &clusterState{name: c.Name, product: p, spec: spec, dep: dep}
@@ -134,6 +144,26 @@ func (d *Deployer) Deploy(ctx context.Context, run runtime.Run, sc *scenario.Sce
 		}
 	}
 	return out, nil
+}
+
+// sealFor asks the cluster that provides a seal to prepare itself, and returns what the cluster it
+// unseals needs to reach it. The provider is already deployed, because it comes first in the deploy order.
+func (d *Deployer) sealFor(ctx context.Context, state *runState, c scenario.Cluster) (product.SealSpec, error) {
+	for _, cs := range state.clusters {
+		if cs.name != c.Seal.Provider {
+			continue
+		}
+		provider, ok := cs.product.(product.SealProvider)
+		if !ok {
+			return product.SealSpec{}, fmt.Errorf("%s clusters cannot provide a seal, so %q cannot unseal %q", cs.product.Name(), cs.name, c.Name)
+		}
+		seal, err := provider.ProvideSeal(ctx, d.Runtime, cs.dep)
+		if err != nil {
+			return product.SealSpec{}, fmt.Errorf("prepare %q to provide the seal: %w", cs.name, err)
+		}
+		return seal, nil
+	}
+	return product.SealSpec{}, fmt.Errorf("the cluster %q that provides the seal has not been deployed", c.Seal.Provider)
 }
 
 // Revive implements engine.Reviver: it asks the node's product to recreate it.

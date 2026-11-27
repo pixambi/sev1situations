@@ -264,12 +264,42 @@ func (v *validator) topology() {
 		} else if c.Nodes < 1 {
 			v.add(f+".nodes", "%d must be at least 1", c.Nodes)
 		}
+		v.seal(f, c, t.Clusters)
 	}
 	for i, sv := range t.Services {
 		f := fmt.Sprintf("topology.services[%d]", i)
 		name(f+".name", sv.Name)
 		v.required(f+".type", sv.Type)
 	}
+}
+
+// seal checks a cluster's seal: a known type, and a provider that is another cluster of the
+// scenario and is not itself unsealed by one, so there is always one to deploy first.
+func (v *validator) seal(f string, c Cluster, all []Cluster) {
+	if c.Seal == nil {
+		return
+	}
+	if c.Seal.Type != SealTransit {
+		v.add(f+".seal.type", "%q is not a seal type. Use: %s", c.Seal.Type, SealTransit)
+	}
+	v.required(f+".seal.provider", c.Seal.Provider)
+	if c.Seal.Provider == "" {
+		return
+	}
+	if c.Seal.Provider == c.Name {
+		v.add(f+".seal.provider", "a cluster cannot be unsealed by itself")
+		return
+	}
+	for _, other := range all {
+		if other.Name != c.Seal.Provider {
+			continue
+		}
+		if other.Seal != nil {
+			v.add(f+".seal.provider", "%q is itself unsealed by another cluster, so it cannot provide the seal", other.Name)
+		}
+		return
+	}
+	v.add(f+".seal.provider", "%q is not a cluster of this scenario", c.Seal.Provider)
 }
 
 // declaresIntParam reports whether the scenario declares an int parameter with this ID.

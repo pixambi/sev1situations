@@ -109,6 +109,10 @@ type DeploySpec struct {
 	Binary string
 	// Image is the base image, which the deploy step has already made local.
 	Image string
+	// Seal, if set, says the cluster is unsealed automatically by another cluster's
+	// product, instead of by key shares. The deploy step fills it in from the cluster's
+	// provider (see SealProvider) before this cluster is deployed.
+	Seal *SealSpec
 	// Settings gives access to the saved settings, such as a license.
 	Settings Settings
 	// Ports allocates host ports for services that are published to the Mac.
@@ -203,4 +207,35 @@ type Registry struct {
 // NewRegistry returns an empty registry.
 func NewRegistry() *Registry {
 	return &Registry{products: map[string]Product{}}
+}
+
+// SealSpec says how a cluster is unsealed automatically.
+type SealSpec struct {
+	// Type is the kind of seal. Today that is "transit".
+	Type string
+	// Transit holds what a transit seal needs, when Type is "transit".
+	Transit TransitSeal
+}
+
+// TransitSeal is how a cluster reaches the transit secrets engine of another Vault, which
+// holds the key that unseals it.
+type TransitSeal struct {
+	// Address is the API address of the Vault that provides the seal, reachable from the
+	// cluster's nodes.
+	Address string
+	// Token is the credential the cluster uses there. It is a secret.
+	Token string
+	// MountPath is where the transit engine is mounted, for example "transit/".
+	MountPath string
+	// KeyName is the transit key that wraps the cluster's keys.
+	KeyName string
+}
+
+// SealProvider is implemented by a product that can unseal another cluster, as Vault can
+// through its transit engine. The deploy step calls it on a deployed cluster to get what the
+// clusters it unseals need.
+type SealProvider interface {
+	// ProvideSeal prepares a deployed cluster to act as the seal's provider, and returns the
+	// seal that clusters of this product use to reach it.
+	ProvideSeal(ctx context.Context, rt runtime.Runtime, d Deployment) (SealSpec, error)
 }

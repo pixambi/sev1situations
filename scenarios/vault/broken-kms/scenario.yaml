@@ -1,0 +1,174 @@
+id: vault-broken-kms
+name: Broken KMS
+summary: A Vault cluster unseals itself through the transit engine of a separate KMS Vault. The token it uses is revoked, and after a restart Vault will not start.
+product: vault
+editions: [community, enterprise]
+difficulty: intermediate
+estimatedMinutes: 20
+tags: [vault, auto-unseal, transit-seal, kms, seal]
+objectives:
+  - Recognise a failed auto-unseal and read the seal error in the log.
+  - Explain how a transit seal works and what it needs from the KMS, which is a reachable address, a valid token with a suitable policy, and the key.
+  - Create a replacement token on the KMS Vault with the minimal transit policy.
+  - Update the seal stanza on every node and restart.
+  - Confirm that auto-unseal works on a later restart.
+prerequisites:
+  - Vault concepts such as init, unseal, tokens and policies.
+  - Auto-unseal, and the difference between unseal keys and recovery keys.
+  - A Vault Enterprise license in Settings is needed for the Enterprise edition.
+parameters:
+  - id: version
+    type: version
+    product: vault
+    label: Vault version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Community, or Enterprise, which needs a license saved in Settings.
+topology:
+  clusters:
+    - name: primary
+      product: vault
+      nodes: 3
+      storage: raft
+      seal:
+        type: transit
+        provider: kms
+    - name: kms
+      product: vault
+      nodes: 1
+      storage: raft
+initialState: >-
+  A one-node KMS Vault, kms-node-1, with the transit secrets engine, a key called autounseal and a
+  policy that allows only encrypt and decrypt with that key. A three-node workload cluster, node-1
+  to node-3, on Raft integrated storage, with a seal "transit" stanza that points at the KMS
+  Vault with a token that has that policy. The workload cluster was initialised with recovery keys,
+  so it unseals itself, and holds a secret at secret/app. The Cluster tab shows both Vaults'
+  addresses and root tokens, the seal token and the recovery keys.
+failureCreated: >-
+  The token the workload cluster uses is revoked on the KMS Vault, then Vault is stopped and started on
+  all three workload nodes. A Vault that cannot use its seal exits at start-up, so the nodes are not
+  running at all. The KMS Vault and the key are fine, so it can be recovered with a new token.
+successCriteria: >-
+  All three workload nodes are unsealed with a leader, the seeded secret is readable, and a node that is
+  restarted unseals itself again.
+pitfalls:
+  - Forgetting a node. The step stays red until all three run.
+  - Creating the token without the policy, so it exists but is refused.
+  - Editing the configuration but not starting Vault again.
+  - Using an unseal key. An auto-unsealed cluster has recovery keys, which cannot unseal it.
+  - Fixing one node's shell and not its configuration file, so the next restart fails again.
+references:
+  - title: Transit seal configuration
+    url: https://developer.hashicorp.com/vault/docs/configuration/seal/transit
+  - title: Auto-unseal
+    url: https://developer.hashicorp.com/vault/docs/concepts/seal#auto-unseal
+  - title: Tokens
+    url: https://developer.hashicorp.com/vault/docs/concepts/tokens
+  - title: Policies
+    url: https://developer.hashicorp.com/vault/docs/concepts/policies
+steps:
+  - id: revoke-token
+    kind: breakage
+    title: Revoke the seal token
+    guide: steps/revoke-token.md
+    resetPoint: true
+    action:
+      - primitive: vault.kv-put
+        args:
+          node: node-1
+          path: app
+          data:
+            api-key: seeded-before-the-outage
+      - primitive: vault.cli
+        args:
+          node: kms-node-1
+          command: [token, revoke, "{{ .Creds.primary.sealToken }}"]
+      - primitive: container.exec
+        args:
+          node: node-1
+          command: [sh, -c, "pkill vault; sleep 2; /usr/local/bin/vault server -config=/etc/vault.d/vault.hcl >> /vault/logs/operational.log 2>&1 &"]
+      - primitive: container.exec
+        args:
+          node: node-2
+          command: [sh, -c, "pkill vault; sleep 2; /usr/local/bin/vault server -config=/etc/vault.d/vault.hcl >> /vault/logs/operational.log 2>&1 &"]
+      - primitive: container.exec
+        args:
+          node: node-3
+          command: [sh, -c, "pkill vault; sleep 2; /usr/local/bin/vault server -config=/etc/vault.d/vault.hcl >> /vault/logs/operational.log 2>&1 &"]
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-1, reachable: false }
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-2, reachable: false }
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-3, reachable: false }
+      - primitive: container.exec
+        args:
+          node: node-1
+          command: [tail, -n, "40", /vault/logs/operational.log]
+          contains: permission denied
+  - id: unsealed
+    kind: verification
+    title: Cluster unsealed
+    guide: steps/unsealed.md
+    verify:
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-1, sealed: false }
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-2, sealed: false }
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-3, sealed: false }
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.raft-peers
+            args: { node: node-1, servers: 3, voters: 3 }
+      - primitive: vault.kv-get
+        args:
+          node: node-1
+          path: app
+          field: api-key
+          equals: seeded-before-the-outage
+  - id: proven
+    kind: verification
+    title: Auto-unseal proven
+    guide: steps/proven.md
+    verify:
+      - primitive: container.exec
+        args:
+          node: node-3
+          command: [sh, -c, "pkill vault; sleep 2; /usr/local/bin/vault server -config=/etc/vault.d/vault.hcl >> /vault/logs/operational.log 2>&1 &"]
+      - primitive: wait.until
+        args:
+          interval: 3s
+          check:
+            primitive: vault.status
+            args: { node: node-3, sealed: false }

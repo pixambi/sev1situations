@@ -73,8 +73,7 @@ func (p *Product) Revive(ctx context.Context, rt runtime.Runtime, spec product.D
 	if err := c.rejoin(ctx, d, node); err != nil {
 		return node, err
 	}
-	c.say("unsealing %s", name)
-	if err := c.unseal(ctx, node, unsealKeys(&d)); err != nil {
+	if err := c.opened(ctx, node, unsealKeys(&d)); err != nil {
 		return node, err
 	}
 	// Until autopilot has promoted it the node is only a non-voting member, so wait for it. Only for

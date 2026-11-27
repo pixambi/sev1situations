@@ -537,7 +537,7 @@ func (initialise) Run(ctx context.Context, env primitive.Env, a primitive.Args) 
 		// The output of a failed init has no keys, so it is safe to show.
 		return fail(res.Stderr+res.Stdout, "initialising %s failed: %s", n.Name, firstLine(res.Stderr+res.Stdout)), nil
 	}
-	keys, err := parseInit(res.Stdout)
+	keys, err := parseInit(res.Stdout, false)
 	if err != nil {
 		return primitive.Result{}, err
 	}

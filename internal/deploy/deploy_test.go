@@ -420,3 +420,79 @@ func TestTheEngineRunsTheSandboxThroughTheDeployer(t *testing.T) {
 		t.Errorf("%d containers left after End", len(cs))
 	}
 }
+
+// sealedYAML is the two-cluster scenario with the first cluster unsealed by the second, which is listed last.
+var sealedYAML = strings.Replace(twoClusterYAML, "    - name: primary\n      product: vault\n      nodes: 2\n",
+	"    - name: primary\n      product: vault\n      nodes: 2\n      seal:\n        type: transit\n        provider: dr\n", 1)
+
+func TestAProviderIsDeployedFirstAndGivesTheClusterItUnsealsItsSeal(t *testing.T) {
+	b := newBed(t)
+	dep, lines, err := b.deploy(load(t, sealedYAML), map[string]any{"version": "2.0.0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The provider, listed last, was deployed first, and prepared before the other began.
+	if len(b.prod.Specs) != 2 || b.prod.Specs[0].Cluster != "dr" || b.prod.Specs[1].Cluster != "primary" {
+		t.Fatalf("deploy order = %+v, want dr then primary", clusterNames(b.prod.Specs))
+	}
+	if len(b.prod.SealFor) != 1 || b.prod.SealFor[0].Cluster != "dr" {
+		t.Fatalf("ProvideSeal was asked about %+v", b.prod.SealFor)
+	}
+	if b.prod.Specs[0].Seal != nil {
+		t.Error("the provider was itself given a seal")
+	}
+	seal := b.prod.Specs[1].Seal
+	if seal == nil || seal.Type != "transit" || seal.Transit.Token != "hvs.seal-token" || !strings.HasPrefix(seal.Transit.Address, "http://") {
+		t.Errorf("the sealed cluster was given %+v", seal)
+	}
+
+	// Nodes are still named by their place in the topology, not by when they were deployed.
+	for _, name := range []string{"node-1", "node-2", "dr-node-1"} {
+		if _, ok := dep.Nodes[name]; !ok {
+			t.Errorf("nodes = %v, want %s", dep.Nodes, name)
+		}
+	}
+	if b.prod.Specs[0].NamePrefix != "dr" || b.prod.Specs[1].NamePrefix != "" {
+		t.Errorf("prefixes = %q (dr), %q (primary)", b.prod.Specs[0].NamePrefix, b.prod.Specs[1].NamePrefix)
+	}
+	if len(lines) == 0 {
+		t.Error("no progress was reported")
+	}
+}
+
+func clusterNames(specs []product.DeploySpec) []string {
+	var out []string
+	for _, s := range specs {
+		out = append(out, s.Cluster)
+	}
+	return out
+}
+
+func TestASealThatCannotBeProvidedStopsTheDeploymentWithAClearReason(t *testing.T) {
+	b := newBed(t)
+	b.prod.SealErr = errors.New("transit would not enable")
+	_, _, err := b.deploy(load(t, sealedYAML), map[string]any{"version": "2.0.0"})
+	if err == nil || !strings.Contains(err.Error(), `cluster "primary"`) || !strings.Contains(err.Error(), `prepare "dr" to provide the seal: transit would not enable`) {
+		t.Errorf("Deploy = %v", err)
+	}
+	if len(b.prod.Specs) != 1 {
+		t.Errorf("%d clusters were deployed, want only the provider before the failure", len(b.prod.Specs))
+	}
+}
+
+// noSeal is a product that cannot provide a seal: embedding the interface hides the fake's ProvideSeal.
+type noSeal struct{ product.Product }
+
+func TestAProductThatCannotProvideASealIsRefused(t *testing.T) {
+	b := newBed(t)
+	products := product.NewRegistry()
+	if err := products.Register(noSeal{b.prod}); err != nil {
+		t.Fatal(err)
+	}
+	b.d.Products = products
+	_, _, err := b.deploy(load(t, sealedYAML), map[string]any{"version": "2.0.0"})
+	if err == nil || !strings.Contains(err.Error(), "cannot provide a seal") {
+		t.Errorf("Deploy = %v", err)
+	}
+}
