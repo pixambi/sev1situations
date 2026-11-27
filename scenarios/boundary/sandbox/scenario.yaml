@@ -1,0 +1,51 @@
+id: boundary-sandbox
+name: Boundary Sandbox
+summary: A self-managed Boundary deployment to explore or to practise on before a scenario. There is no incident.
+product: boundary
+editions: [community]
+difficulty: beginner
+estimatedMinutes: 30
+tags: [boundary, sandbox]
+objectives:
+  - Get comfortable with the run page, the Cluster and Logs tabs, terminals and node actions.
+  - Explore Boundary freely.
+prerequisites:
+  - None.
+parameters:
+  - id: version
+    type: version
+    product: boundary
+    label: Boundary version
+    help: The version to run. It defaults to the newest.
+  - id: edition
+    type: edition
+    default: community
+    label: Edition
+    help: Only the community edition is available for now.
+  - id: controllers
+    type: int
+    default: 3
+    min: 1
+    max: 5
+    label: Controller count
+    help: How many Boundary controllers to run, from 1 to 5. They sit behind a load balancer.
+topology:
+  clusters:
+    - name: boundary
+      product: boundary
+      nodes: 3
+      nodesFrom: controllers
+initialState: >-
+  One network. One PostgreSQL database, db-node-1. The chosen number of controllers, node-1 and on, behind an HAProxy load
+  balancer, lb-node-1. One worker, worker-node-1, registered through the balancer. One target host, target-node-1, running
+  OpenSSH. The database is initialised with boundary database init, so an admin account exists with global admin grants,
+  and a resource tree is seeded: an org scope, a project scope, a static host catalog with a host and a host set that
+  point at the target host, and a TCP target for SSH. The Cluster tab shows the addresses, the admin login and password, the
+  IDs of what was created, and the SSH account of the target host.
+references:
+  - title: Boundary documentation
+    url: https://developer.hashicorp.com/boundary/docs
+  - title: Targets
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/targets
+  - title: Sessions
+    url: https://developer.hashicorp.com/boundary/docs/concepts/domain-model/sessions

@@ -17,7 +17,7 @@ import (
 // guide's commands work. Needs a running Podman machine, a local alpine:3 image, and a cached
 // Vault binary (task test:integration downloads one).
 func TestRaftLostQuorumOnRealPodman(t *testing.T) {
-	r := playScenario(t, "vault-raft-lost-quorum", 12*time.Minute)
+	r := playScenario(t, "vault-raft-lost-quorum", "vault", 12*time.Minute)
 	eng, ctx := r.eng, r.ctx
 
 	r.start()

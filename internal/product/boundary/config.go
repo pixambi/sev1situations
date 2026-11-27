@@ -22,6 +22,8 @@ const (
 	OperationalLog = logDir + "/operational.log"
 	// HAProxyLog is the file the load balancer writes its log to.
 	HAProxyLog = "/tmp/haproxy.log"
+	// SSHLog is the file the target host's SSH server writes its log to.
+	SSHLog = "/tmp/sshd.log"
 
 	apiPort     = 9200
 	clusterPort = 9201

@@ -264,16 +264,6 @@ func (c *cluster) install(ctx context.Context, n primitive.Node, configPath, con
 	return nil
 }
 
-// boundary runs the Boundary command line inside a node, signed in with a token if there is one.
-func (c *cluster) boundary(ctx context.Context, n primitive.Node, token *string, args ...string) (runtime.ExecResult, error) {
-	env := map[string]string{"BOUNDARY_ADDR": fmt.Sprintf("http://127.0.0.1:%d", apiPort)}
-	if token != nil {
-		env["BOUNDARY_TOKEN"] = *token
-		args = append(args, "-token=env://BOUNDARY_TOKEN")
-	}
-	return c.rt.Exec(ctx, n.ContainerID, append([]string{binaryPath}, args...), runtime.ExecOptions{Env: env})
-}
-
 // initResult is the part of `boundary database init -format=json` we use. It holds the generated admin
 // password, so the whole output is never logged or put in an error.
 type initResult struct {
@@ -315,7 +305,7 @@ func parseInit(out string) (initResult, error) {
 func (c *cluster) initDatabase(ctx context.Context, d *product.Deployment) error {
 	first := c.controllers(d)[0]
 	c.say("initialising the database from %s", first.Name)
-	res, err := c.boundary(ctx, first, nil, "database", "init", "-config="+controllerConfig, "-format=json")
+	res, err := client{c.rt}.run(ctx, first, localAddr(), "", "database", "init", "-config="+controllerConfig, "-format=json")
 	if err != nil || res.ExitCode != 0 {
 		// The output of a successful init holds the admin password, so on failure only standard error is reported.
 		return fmt.Errorf("initialise the database from %s: %w", first.Name, deployutil.ExecProblem(runtime.ExecResult{ExitCode: res.ExitCode, Stderr: res.Stderr}, err))
@@ -340,11 +330,24 @@ func (c *cluster) initDatabase(ctx context.Context, d *product.Deployment) error
 // serve starts a Boundary server in a node from a configuration file. It is detached, so Boundary keeps running after the
 // command returns, and its output goes to the file the Logs tab follows.
 func (c *cluster) serve(ctx context.Context, n primitive.Node, configPath string) error {
-	cmd := fmt.Sprintf("exec %s server -config=%s >> %s 2>&1", binaryPath, configPath, OperationalLog)
+	// An earlier Boundary in the node, as when a part is started again after a change, is stopped first.
+	cmd := fmt.Sprintf("pkill boundary; sleep 1; exec %s server -config=%s >> %s 2>&1", binaryPath, configPath, OperationalLog)
 	if _, err := c.rt.Exec(ctx, n.ContainerID, []string{"sh", "-c", cmd}, runtime.ExecOptions{Detach: true}); err != nil {
 		return fmt.Errorf("start Boundary on %s: %w", n.Name, err)
 	}
 	return nil
+}
+
+// waitHealthy waits for a controller to report healthy on its ops listener.
+func (c *cluster) waitHealthy(ctx context.Context, n primitive.Node) error {
+	c.say("waiting for %s to report healthy", n.Name)
+	return c.poller.Wait(ctx, n.Name, c.p.timing.Controller, "report healthy", func() (bool, string, error) {
+		res, err := c.rt.Exec(ctx, n.ContainerID, []string{"wget", "-q", "-T", "3", "-O", "/dev/null", fmt.Sprintf("http://127.0.0.1:%d/health", opsPort)}, runtime.ExecOptions{})
+		if err != nil {
+			return false, "", err
+		}
+		return res.ExitCode == 0, deployutil.FirstLine(res.Stderr), nil
+	})
 }
 
 // startControllers starts the first controller and waits for it to be healthy, then starts the rest. A fresh
@@ -352,8 +355,7 @@ func (c *cluster) serve(ctx context.Context, n primitive.Node, configPath string
 // race to do it: one of them fails with a duplicate key and exits. Starting them one after another, as an operator
 // would, avoids that.
 func (c *cluster) startControllers(ctx context.Context, d *product.Deployment) error {
-	ctls := c.controllers(d)
-	for i, n := range ctls {
+	for i, n := range c.controllers(d) {
 		if i == 0 {
 			c.say("starting %s, the first controller", n.Name)
 		} else {
@@ -362,104 +364,87 @@ func (c *cluster) startControllers(ctx context.Context, d *product.Deployment) e
 		if err := c.serve(ctx, n, controllerConfig); err != nil {
 			return err
 		}
-		c.say("waiting for %s to report healthy", n.Name)
-		err := c.poller.Wait(ctx, n.Name, c.p.timing.Controller, "report healthy", func() (bool, string, error) {
-			res, err := c.rt.Exec(ctx, n.ContainerID, []string{"wget", "-q", "-T", "3", "-O", "/dev/null", fmt.Sprintf("http://127.0.0.1:%d/health", opsPort)}, runtime.ExecOptions{})
-			if err != nil {
-				return false, "", err
-			}
-			return res.ExitCode == 0, deployutil.FirstLine(res.Stderr), nil
-		})
-		if err != nil {
+		if err := c.waitHealthy(ctx, n); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *cluster) startLoadBalancer(ctx context.Context, d *product.Deployment) error {
-	lb := c.nodes[roleName(c.spec, "lb")]
-	c.say("starting the load balancer in front of the controllers")
-	for _, f := range []runtime.File{deployutil.File(haproxyConfig, 0o644, haproxyCfg(c.controllers(d)))} {
-		if err := c.rt.Copy(ctx, lb.ContainerID, f); err != nil {
-			return fmt.Errorf("copy %s to %s: %w", f.Path, lb.Name, err)
-		}
+// runLoadBalancer writes the balancer's configuration for the given controllers and starts HAProxy, replacing a
+// running one, so the balancer always knows the controllers' current addresses.
+func (c *cluster) runLoadBalancer(ctx context.Context, lb primitive.Node, controllers []primitive.Node) error {
+	if err := c.rt.Copy(ctx, lb.ContainerID, deployutil.File(haproxyConfig, 0o644, haproxyCfg(controllers))); err != nil {
+		return fmt.Errorf("copy %s to %s: %w", haproxyConfig, lb.Name, err)
 	}
-	if _, err := c.rt.Exec(ctx, lb.ContainerID, []string{"sh", "-c", "exec haproxy -f " + haproxyConfig + " >> " + HAProxyLog + " 2>&1"}, runtime.ExecOptions{Detach: true}); err != nil {
+	script := "pkill haproxy; sleep 1; exec haproxy -f " + haproxyConfig + " >> " + HAProxyLog + " 2>&1"
+	if _, err := c.rt.Exec(ctx, lb.ContainerID, []string{"sh", "-c", script}, runtime.ExecOptions{Detach: true}); err != nil {
 		return fmt.Errorf("start HAProxy on %s: %w", lb.Name, err)
 	}
-	// The way through is checked by signing in through it, which is also how the deployment gets a token to seed with.
-	first := c.controllers(d)[0]
+	return nil
+}
+
+// waitThroughLoadBalancer waits until a sign-in passes through the balancer to a controller.
+func (c *cluster) waitThroughLoadBalancer(ctx context.Context, d product.Deployment, lb, via primitive.Node) error {
 	return c.poller.Wait(ctx, lb.Name, c.p.timing.Controller, "pass a sign-in through to a controller", func() (bool, string, error) {
-		_, note, err := c.signIn(ctx, d, first, lb.IP)
+		_, note, err := client{c.rt}.signIn(ctx, via, fmt.Sprintf("http://%s:%d", lb.IP, apiPort), adminOf(d))
 		return err == nil, note, nil
 	})
 }
 
-// signIn authenticates as the admin through the given host and returns a token. via is the address of the API to use:
-// the load balancer's, or empty for the node's own.
-func (c *cluster) signIn(ctx context.Context, d *product.Deployment, from primitive.Node, via string) (string, string, error) {
-	addr := fmt.Sprintf("http://127.0.0.1:%d", apiPort)
-	if via != "" {
-		addr = fmt.Sprintf("http://%s:%d", via, apiPort)
+func (c *cluster) startLoadBalancer(ctx context.Context, d *product.Deployment) error {
+	lb := c.nodes[roleName(c.spec, "lb")]
+	c.say("starting the load balancer in front of the controllers")
+	if err := c.runLoadBalancer(ctx, lb, c.controllers(d)); err != nil {
+		return err
 	}
-	res, err := c.rt.Exec(ctx, from.ContainerID, []string{binaryPath, "authenticate", "password",
-		"-auth-method-id=" + d.State["authMethodId"], "-login-name=" + d.State["adminLogin"], "-password=env://BOUNDARY_PASSWORD",
-		"-keyring-type=none", "-format=json"},
-		runtime.ExecOptions{Env: map[string]string{"BOUNDARY_ADDR": addr, "BOUNDARY_PASSWORD": d.Creds["adminPassword"]}})
-	if err != nil {
-		return "", "", err
-	}
-	if res.ExitCode != 0 {
-		return "", deployutil.FirstLine(res.Stderr), fmt.Errorf("sign in: %s", deployutil.FirstLine(res.Stderr))
-	}
-	var out struct {
-		Item struct {
-			Attributes struct {
-				Token string `json:"token"`
-			} `json:"attributes"`
-		} `json:"item"`
-	}
-	if json.Unmarshal([]byte(res.Stdout), &out) != nil || out.Item.Attributes.Token == "" {
-		return "", "the sign-in did not return a token", errors.New("the sign-in did not return a token") // the output holds the token
-	}
-	return out.Item.Attributes.Token, "", nil
+	// The way through is checked by signing in through it.
+	return c.waitThroughLoadBalancer(ctx, *d, lb, c.controllers(d)[0])
 }
 
-func (c *cluster) startWorker(ctx context.Context, d *product.Deployment) error {
-	w, lb := c.nodes[roleName(c.spec, "worker")], c.nodes[roleName(c.spec, "lb")]
-	c.say("starting the worker, which registers through the load balancer")
+// runWorker installs and starts a worker that registers through the load balancer, and waits until a controller lists it
+// with its current address. A worker that is started again in the same container, as when the balancer it registers through
+// has changed, keeps its address, so the wait is for its status to be reported afresh.
+func (c *cluster) runWorker(ctx context.Context, d product.Deployment, w, lb primitive.Node, via primitive.Node) error {
+	c.say("starting %s, which registers through the load balancer", w.Name)
+	before := client{c.rt}.workerStatus(ctx, via, d, w.Name).LastStatus
 	if err := c.install(ctx, w, workerConfig, workerHCL(w.Name, w.IP, fmt.Sprintf("%s:%d", lb.IP, clusterPort), c.k)); err != nil {
 		return err
 	}
 	if err := c.serve(ctx, w, workerConfig); err != nil {
 		return err
 	}
-	first := c.controllers(d)[0]
 	return c.poller.Wait(ctx, w.Name, c.p.timing.Worker, "register with the controllers", func() (bool, string, error) {
-		token, note, err := c.signIn(ctx, d, first, "")
+		token, note, err := client{c.rt}.signIn(ctx, via, localAddr(), adminOf(d))
 		if err != nil {
 			return false, note, nil
 		}
-		res, err := c.boundary(ctx, first, &token, "workers", "list", "-format=json")
+		res, err := client{c.rt}.run(ctx, via, localAddr(), token, "workers", "list", "-format=json")
 		if err != nil {
 			return false, "", err
 		}
-		return res.ExitCode == 0 && strings.Contains(res.Stdout, `"`+w.Name+`"`), deployutil.FirstLine(res.Stderr), nil
+		if res.ExitCode != 0 {
+			return false, deployutil.FirstLine(res.Stderr), nil
+		}
+		all, err := workers(res.Stdout)
+		if err != nil {
+			return false, err.Error(), nil
+		}
+		return registered(all, w, before), fmt.Sprintf("%s is listed as %+v", w.Name, all[w.Name]), nil
 	})
 }
 
-func (c *cluster) startTarget(ctx context.Context, d *product.Deployment) error {
-	t := c.nodes[roleName(c.spec, "target")]
-	pw, err := randomPassword()
-	if err != nil {
-		return err
-	}
-	c.say("installing an SSH server on the target host")
+func (c *cluster) startWorker(ctx context.Context, d *product.Deployment) error {
+	return c.runWorker(ctx, *d, c.nodes[roleName(c.spec, "worker")], c.nodes[roleName(c.spec, "lb")], c.controllers(d)[0])
+}
+
+// runSSH installs an SSH server on the target host, with one account that has the given password, and waits until it answers.
+func (c *cluster) runSSH(ctx context.Context, t primitive.Node, password string) error {
+	c.say("installing an SSH server on %s", t.Name)
 	script := "apk add --no-cache openssh >/dev/null && ssh-keygen -A >/dev/null && " +
-		"adduser -D -s /bin/sh " + targetUser + " && echo '" + targetUser + ":" + pw + "' | chpasswd && " +
-		"mkdir -p /run/sshd && /usr/sbin/sshd -e"
-	err = c.poller.Wait(ctx, t.Name, c.p.timing.Install, "install and start its SSH server", func() (bool, string, error) {
+		"adduser -D -s /bin/sh " + targetUser + " && echo '" + targetUser + ":" + password + "' | chpasswd && " +
+		"mkdir -p /run/sshd && /usr/sbin/sshd -e 2>" + SSHLog
+	err := c.poller.Wait(ctx, t.Name, c.p.timing.Install, "install and start its SSH server", func() (bool, string, error) {
 		res, err := c.rt.Exec(ctx, t.ContainerID, []string{"sh", "-c", script}, runtime.ExecOptions{})
 		if err != nil {
 			return false, "", err
@@ -469,8 +454,6 @@ func (c *cluster) startTarget(ctx context.Context, d *product.Deployment) error 
 	if err != nil {
 		return err
 	}
-	d.Creds["targetPassword"] = pw
-	d.State["targetUser"] = targetUser
 	return c.poller.Wait(ctx, t.Name, c.p.timing.Install, "answer on the SSH port", func() (bool, string, error) {
 		res, err := c.rt.Exec(ctx, t.ContainerID, []string{"sh", "-c", fmt.Sprintf("nc -w 2 127.0.0.1 %d </dev/null", sshPort)}, runtime.ExecOptions{})
 		if err != nil {
@@ -480,19 +463,36 @@ func (c *cluster) startTarget(ctx context.Context, d *product.Deployment) error 
 	})
 }
 
-// seed points the generated host at the target host, so the generated target reaches a real SSH server.
-func (c *cluster) seed(ctx context.Context, d *product.Deployment) error {
-	first, t := c.controllers(d)[0], c.nodes[roleName(c.spec, "target")]
-	c.say("pointing the generated host at the target host")
-	token, _, err := c.signIn(ctx, d, first, "")
+func (c *cluster) startTarget(ctx context.Context, d *product.Deployment) error {
+	pw, err := randomPassword()
 	if err != nil {
-		return fmt.Errorf("sign in to seed the resources: %w", err)
+		return err
 	}
-	res, err := c.boundary(ctx, first, &token, "hosts", "update", "static", "-id="+d.State["hostId"], "-address="+t.IP, "-name=target-host", "-description=The SSH server of the target host")
+	if err := c.runSSH(ctx, c.nodes[roleName(c.spec, "target")], pw); err != nil {
+		return err
+	}
+	d.Creds["targetPassword"] = pw
+	d.State["targetUser"] = targetUser
+	return nil
+}
+
+// pointHost makes the generated host reach the target host's address, signed in as the admin through a controller.
+func (c *cluster) pointHost(ctx context.Context, d product.Deployment, via, target primitive.Node) error {
+	token, _, err := client{c.rt}.signIn(ctx, via, localAddr(), adminOf(d))
+	if err != nil {
+		return fmt.Errorf("sign in to point the host at %s: %w", target.Name, err)
+	}
+	res, err := client{c.rt}.run(ctx, via, localAddr(), token, "hosts", "update", "static", "-id="+d.State["hostId"], "-address="+target.IP, "-name=target-host", "-description=The SSH server of the target host")
 	if err != nil || res.ExitCode != 0 {
-		return fmt.Errorf("point the generated host at %s: %w", t.Name, deployutil.ExecProblem(res, err))
+		return fmt.Errorf("point the generated host at %s: %w", target.Name, deployutil.ExecProblem(res, err))
 	}
 	return nil
+}
+
+// seed points the generated host at the target host, so the generated target reaches a real SSH server.
+func (c *cluster) seed(ctx context.Context, d *product.Deployment) error {
+	c.say("pointing the generated host at the target host")
+	return c.pointHost(ctx, *d, c.controllers(d)[0], c.nodes[roleName(c.spec, "target")])
 }
 
 func randomPassword() (string, error) {

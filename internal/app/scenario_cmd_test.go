@@ -311,12 +311,12 @@ func TestDefaultProducts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(reg.Names(), ","); got != "vault" {
+	if got := strings.Join(reg.Names(), ","); got != "boundary,vault" {
 		t.Errorf("products = %q, want the products that ship", got)
 	}
 	fields := reg.SettingsFields()
-	if len(fields) != 1 || fields[0].Key != "vault.license" {
-		t.Errorf("settings fields = %+v, want the Vault license, brought by the product (R-SET-4)", fields)
+	if len(fields) != 2 || fields[0].Key != "boundary.license" || fields[1].Key != "vault.license" {
+		t.Errorf("settings fields = %+v, want each product's license, brought by the product (R-SET-4)", fields)
 	}
 
 	// The shipped scenario commands work with it.

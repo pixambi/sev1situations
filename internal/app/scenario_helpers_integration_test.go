@@ -51,19 +51,19 @@ type realRun struct {
 	conn  *Connection
 	eng   *engine.Engine
 	entry scenario.Entry
-	newer string // the newest community Vault version
+	newer string // the newest community version of the scenario's product
 }
 
 // playScenario sets up a real run of the built-in scenario with the given ID. It skips the test when
-// there is no Podman machine or no cached Vault binary.
-func playScenario(t *testing.T, id string, timeout time.Duration) *realRun {
+// there is no Podman machine or no cached binary of the product.
+func playScenario(t *testing.T, id, productName string, timeout time.Duration) *realRun {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 
-	cache := filepath.Join(userCache(t), "sev1situations-integration", "vault")
+	cache := filepath.Join(userCache(t), "sev1situations-integration", productName)
 	if _, err := os.Stat(cache); err != nil {
-		t.Skipf("no cached Vault binary at %s: run the Vault integration tests first", cache)
+		t.Skipf("no cached %s binary at %s: run that product's integration tests first", productName, cache)
 	}
 	data := t.TempDir()
 	t.Setenv("S1S_DATA_DIR", data)
@@ -90,7 +90,7 @@ func playScenario(t *testing.T, id string, timeout time.Duration) *realRun {
 	if !ok {
 		t.Fatalf("scenario %q is not in the catalogue", id)
 	}
-	versions, err := Versions(conn.Products)(ctx, "vault", "community")
+	versions, err := Versions(conn.Products)(ctx, productName, "community")
 	if err != nil || len(versions) == 0 {
 		t.Skipf("cannot list Vault versions: %v", err)
 	}

@@ -14,7 +14,7 @@ import (
 // TestBrokenKMSOnRealPodman plays the scenario end to end on a real machine (R-CONTRIB-4). The repair is
 // typed into the containers as the step's guide tells the instructor to, so the guide's commands are proved.
 func TestBrokenKMSOnRealPodman(t *testing.T) {
-	r := playScenario(t, "vault-broken-kms", 14*time.Minute)
+	r := playScenario(t, "vault-broken-kms", "vault", 14*time.Minute)
 	eng, ctx := r.eng, r.ctx
 
 	r.start()

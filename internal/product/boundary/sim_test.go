@@ -1,6 +1,7 @@
 package boundary
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -33,7 +34,14 @@ type sim struct {
 	events []string
 
 	started map[string]bool // node name -> its server was started
-	dbReady int             // pg_isready calls that still fail
+	// restarts counts how often each node's server was started, which moves a worker's last status time on.
+	restarts map[string]int
+	dbReady  int // pg_isready calls that still fail
+
+	// reply sets the answer to a Boundary command by its first two words, for tests of the primitives.
+	reply map[string]runtime.ExecResult
+	// users maps a login name to its password, besides the admin.
+	users map[string]string
 
 	// failure switches
 	initFails        bool
@@ -42,7 +50,7 @@ type sim struct {
 }
 
 func newSim(rt *rtfake.Runtime) *sim {
-	s := &sim{rt: rt, names: map[string]string{}, started: map[string]bool{}, controllerNever: map[string]bool{}}
+	s := &sim{rt: rt, names: map[string]string{}, started: map[string]bool{}, restarts: map[string]int{}, controllerNever: map[string]bool{}}
 	rt.SetExec(s.exec)
 	return s
 }
@@ -64,6 +72,11 @@ func (s *sim) exec(c runtime.Container, cmd []string, o runtime.ExecOptions) (ru
 	switch cmd[0] {
 	case "mkdir":
 		return runtime.ExecResult{}, nil
+	case "pidof":
+		if s.started[node] {
+			return runtime.ExecResult{Stdout: "42"}, nil
+		}
+		return runtime.ExecResult{ExitCode: 1}, nil
 	case "pg_isready":
 		if s.dbReady > 0 {
 			s.dbReady--
@@ -84,6 +97,7 @@ func (s *sim) exec(c runtime.Container, cmd []string, o runtime.ExecOptions) (ru
 		switch {
 		case strings.Contains(script, "boundary server"):
 			s.started[node] = true
+			s.restarts[node]++
 			s.note("start %s", node)
 		case strings.Contains(script, "haproxy"):
 			s.started[node] = true
@@ -101,7 +115,13 @@ func (s *sim) exec(c runtime.Container, cmd []string, o runtime.ExecOptions) (ru
 }
 
 func (s *sim) boundary(node string, args []string, o runtime.ExecOptions) runtime.ExecResult {
-	switch strings.Join(args[:min(2, len(args))], " ") {
+	key := strings.Join(args[:min(2, len(args))], " ")
+	if r, ok := s.reply[key]; ok {
+		return r
+	}
+	switch key {
+	case "auth-methods list":
+		return runtime.ExecResult{Stdout: `{"items":[{"id":"ampw_sim","type":"password"}]}`}
 	case "database init":
 		if s.initFails {
 			return runtime.ExecResult{ExitCode: 1, Stderr: "could not connect to the database", Stdout: "SECRET-INIT-OUTPUT " + simPassword}
@@ -122,7 +142,19 @@ func (s *sim) boundary(node string, args []string, o runtime.ExecOptions) runtim
 		if !strings.Contains(o.Env["BOUNDARY_ADDR"], "127.0.0.1") && !s.anyStartedLB() {
 			return runtime.ExecResult{ExitCode: 1, Stderr: "connection refused"}
 		}
-		if o.Env["BOUNDARY_PASSWORD"] != simPassword {
+		login := ""
+		for _, a := range args {
+			if strings.HasPrefix(a, "-login-name=") {
+				login = strings.TrimPrefix(a, "-login-name=")
+			}
+		}
+		if pw, known := s.users[login]; known {
+			if o.Env["BOUNDARY_PASSWORD"] != pw {
+				return runtime.ExecResult{ExitCode: 1, Stderr: "authentication failed"}
+			}
+			return runtime.ExecResult{Stdout: `{"item":{"attributes":{"token":"at_` + login + `"}}}`}
+		}
+		if login != "admin" || o.Env["BOUNDARY_PASSWORD"] != simPassword {
 			return runtime.ExecResult{ExitCode: 1, Stderr: "authentication failed"}
 		}
 		return runtime.ExecResult{Stdout: `{"item":{"attributes":{"token":"` + simToken + `"}}}`}
@@ -138,7 +170,7 @@ func (s *sim) boundary(node string, args []string, o runtime.ExecOptions) runtim
 		var items []string
 		for n, ok := range s.started {
 			if ok && (strings.HasPrefix(n, "worker-node-") || strings.Contains(n, "-worker-node-")) {
-				items = append(items, `{"name":"`+n+`"}`)
+				items = append(items, `{"name":"`+n+`","address":"`+s.addrOf(n)+`:9202","last_status_time":"`+fmt.Sprintf("2026-11-27T00:00:%02dZ", s.restarts[n])+`"}`)
 			}
 		}
 		return runtime.ExecResult{Stdout: `{"items":[` + strings.Join(items, ",") + `]}`}
@@ -148,6 +180,17 @@ func (s *sim) boundary(node string, args []string, o runtime.ExecOptions) runtim
 		return runtime.ExecResult{}
 	}
 	return runtime.ExecResult{ExitCode: 1, Stderr: "unsupported boundary command: " + strings.Join(args, " ")}
+}
+
+// addrOf is the address of a node's container, which a worker registers with.
+func (s *sim) addrOf(node string) string {
+	cs, _ := s.rt.List(context.Background(), "r1")
+	for _, c := range cs {
+		if nodeOf(c) == node {
+			return c.IP
+		}
+	}
+	return ""
 }
 
 func (s *sim) anyStartedLB() bool { return s.startedRole("lb") }
