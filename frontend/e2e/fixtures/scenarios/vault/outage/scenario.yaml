@@ -1,0 +1,47 @@
+id: vault-outage
+name: Test Outage
+summary: A scenario for the end-to-end tests, with a fault that is fixed on the second look.
+product: vault
+editions: [community]
+difficulty: beginner
+estimatedMinutes: 5
+tags: [test]
+objectives:
+  - Exercise the run page.
+prerequisites:
+  - None.
+parameters:
+  - id: version
+    type: version
+    product: vault
+    label: Vault version
+    help: The version to run.
+topology:
+  clusters:
+    - name: primary
+      product: vault
+      nodes: 2
+initialState: Two nodes.
+failureCreated: The test fault is put in place. It can be recovered.
+successCriteria: The second check passes.
+pitfalls:
+  - None.
+references:
+  - title: Vault
+    url: https://developer.hashicorp.com/vault
+steps:
+  - id: break-it
+    kind: breakage
+    title: Break it
+    guide: steps/break-it.md
+    resetPoint: true
+    action:
+      - primitive: vault.e2e-break
+    verify:
+      - primitive: vault.e2e-check-broken
+  - id: fixed
+    kind: verification
+    title: Fixed
+    guide: steps/fixed.md
+    verify:
+      - primitive: vault.e2e-check-fixed

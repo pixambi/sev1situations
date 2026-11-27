@@ -14,7 +14,9 @@ import (
 
 	"github.com/pixambi/sev1situations/internal/primitive"
 	"github.com/pixambi/sev1situations/internal/product"
+	"github.com/pixambi/sev1situations/internal/release"
 	"github.com/pixambi/sev1situations/internal/report"
+	"github.com/pixambi/sev1situations/internal/runtime"
 	"github.com/pixambi/sev1situations/internal/scenario"
 	"github.com/pixambi/sev1situations/internal/settings"
 )
@@ -40,6 +42,12 @@ type Options struct {
 	// Reports is the report store, if the caller has opened it already. Connect
 	// opens it itself when it is nil.
 	Reports *report.Store
+	// Runtime, if set, is used instead of Podman. It is for tests of the whole
+	// application with a fake runtime, and nothing in a release build sets it.
+	Runtime runtime.Runtime
+	// Releases, if set, is where product binaries are downloaded from instead of
+	// releases.hashicorp.com. It is for the same tests.
+	Releases *release.Client
 }
 
 // builtinRoot is the folder inside Options.Builtin that holds the scenarios.

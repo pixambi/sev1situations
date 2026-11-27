@@ -44,5 +44,6 @@ jobs:
         working-directory: frontend
       - run: npx playwright install chromium
         working-directory: frontend
-      - run: npx playwright test
+      # The main suite, then the one that runs the run page on a fake runtime.
+      - run: npm run test:e2e
         working-directory: frontend

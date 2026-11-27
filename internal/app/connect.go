@@ -62,9 +62,16 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 			return nil, err
 		}
 	}
-	rt, err := podman.New(ctx)
-	if err != nil {
-		return nil, err
+	rt := opts.Runtime
+	if rt == nil {
+		var err error
+		if rt, err = podman.New(ctx); err != nil {
+			return nil, err
+		}
+	}
+	releases := opts.Releases
+	if releases == nil {
+		releases = release.NewClient()
 	}
 	startup, err := Startup(ctx, rt, log)
 	if err != nil {
@@ -73,7 +80,7 @@ func Connect(ctx context.Context, opts Options, log *slog.Logger, onEvent func(e
 
 	deployer := &deploy.Deployer{
 		Products: products, Runtime: rt, Settings: store, Ports: runtime.NewPortAllocator(), Arch: goruntime.GOARCH,
-		Cache: release.NewCache(filepath.Join(dataDir, "cache", "binaries"), release.NewClient()),
+		Cache: release.NewCache(filepath.Join(dataDir, "cache", "binaries"), releases),
 	}
 	// The steps' primitives: the generic ones and each product's (R-SCOPE-3).
 	prims := primitive.NewRegistry()

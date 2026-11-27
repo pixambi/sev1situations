@@ -27,6 +27,11 @@ func main() {
 		os.Exit(1)
 	}
 	opts := app.Options{Builtin: sev1situations.Scenarios, Products: products, Stdin: os.Stdin}
+	if err := useTestDoubles(&opts); err != nil {
+		fmt.Fprintln(os.Stderr, "s1s:", err)
+		os.Exit(1)
+	}
+	products = opts.Products
 
 	// With arguments it is the command-line tool (R-APP-5).
 	if len(os.Args) > 1 {

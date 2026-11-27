@@ -13,6 +13,7 @@ process.env.S1S_DATA_DIR = dataDir;
 // real Go services over HTTP. It does not drive the native WebView window.
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "**/fake/**",
   use: {
     baseURL: "http://127.0.0.1:8080",
     viewport: { width: 800, height: 600 },
