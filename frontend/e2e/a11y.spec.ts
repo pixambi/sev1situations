@@ -27,7 +27,7 @@ for (const scheme of ["light", "dark"] as const) {
 
     test("start form, with its errors showing", async ({ page }) => {
       await page.goto("/");
-      const start = page.getByRole("button", { name: "Start" });
+      const start = page.getByRole("listitem").filter({ hasText: "Vault Sandbox" }).getByRole("button", { name: "Start" });
       test.skip(await start.isDisabled(), "Podman is not ready here, so the form cannot be opened");
       await start.click();
       await expect(page.getByRole("heading", { name: /^Start / })).toBeVisible();

@@ -56,7 +56,7 @@ test("follows the system's light and dark setting", async ({ page }) => {
 test("Start opens the form for the scenario, and Cancel returns to the catalogue", async ({ page }) => {
   await page.goto("/");
   // Podman may be absent where this runs, which disables Start, so the form is opened through it only when enabled.
-  const start = page.getByRole("button", { name: "Start" });
+  const start = page.getByRole("listitem").filter({ hasText: "Vault Sandbox" }).getByRole("button", { name: "Start" });
   await expect(start).toBeVisible();
   test.skip(await start.isDisabled(), "Podman is not ready here, so Start is disabled");
 

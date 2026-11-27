@@ -237,11 +237,11 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
-| T-120 | Playwright setup in `tests/e2e/` (page objects, dev server on a free port, temp data dir, fake runtime, console-error failures) and Vitest setup for the frontend. | R-TEST-1 to R-TEST-5 | L | One command runs both suites. |
+| T-120 | [x] (It lives in `frontend/e2e/`, and runs against the real Go services in a server build, with its own data folder.) Playwright setup in `tests/e2e/` (page objects, dev server on a free port, temp data dir, fake runtime, console-error failures) and Vitest setup for the frontend. | R-TEST-1 to R-TEST-5 | L | One command runs both suites. |
 | T-121 | Playwright coverage for every UI feature's main path. | R-TEST-4 | L | Suite green in CI. |
 | T-122 | Manual end-to-end test of every scenario on real Podman by a maintainer, recorded in the issue for each. Manual smoke test of the packaged `.app`. | R-CONTRIB-4, 9 | L | All eleven scenarios signed off. |
 | T-123 | Security pass: CSP, no remote content, no network listener, service input validation, no secrets in logs, reports or docs, `govulncheck` clean. | R-QUAL-3, R-QUAL-5, R-APP-3 | M | Checklist done. |
-| T-124 | Release workflow on macOS runners: build the bundles, zip, checksums, publish on tags. | 10 | M | A tagged snapshot produces archives. |
+| T-124 | [x] Release workflow on macOS runners: build the bundles, zip, checksums, publish on tags. | 10 | M | A tagged snapshot produces archives. |
 | T-125 | Verify the install path from the release archive on a clean Mac, including the Gatekeeper note in the docs. | 10 | S | Works on a clean machine. |
 | T-126 | Cut **0.1.0**. | 10 | S | Release published. |
 

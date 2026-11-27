@@ -24,23 +24,25 @@ test("keeps a license private: masked in the page, owner-only on disk, never rea
   const license = "02MV4UU43BK5.PRIVATE-LICENSE-VALUE";
   await page.goto("/");
   await page.getByRole("button", { name: "Settings" }).click();
+  // Each product brings its own license field, so the controls are found inside the Vault one.
+  const vault = () => page.locator("form").filter({ has: page.getByLabel("Vault Enterprise license") });
   await page.getByLabel("Vault Enterprise license").fill(license);
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await vault().getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Vault Enterprise license saved.")).toBeVisible();
 
   // The page never holds it: not in the text, not in any field, not after a reload.
   await page.reload();
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(page.getByLabel("Vault Enterprise license")).toHaveValue("");
-  await expect(page.getByPlaceholder("Saved. Enter a new one to replace it.")).toBeVisible();
+  await expect(vault().getByPlaceholder("Saved. Enter a new one to replace it.")).toBeVisible();
   expect(await page.content()).not.toContain("PRIVATE-LICENSE-VALUE");
 
   // On disk it is there for the core to use, in a file only the owner can read (R-SET-3).
   expect(readFileSync(settingsFile(), "utf8")).toContain("PRIVATE-LICENSE-VALUE");
   expect(statSync(settingsFile()).mode & 0o777).toBe(0o600);
 
-  await page.getByRole("button", { name: "Remove" }).click();
-  await expect(page.getByText("Not set")).toBeVisible();
+  await vault().getByRole("button", { name: "Remove" }).click();
+  await expect(vault().getByText("Not set")).toBeVisible();
   expect(readFileSync(settingsFile(), "utf8")).not.toContain("PRIVATE-LICENSE-VALUE");
 });
 

@@ -16,6 +16,34 @@ podman machine start
 
 On first launch the app checks Podman and tells you what is missing.
 
+## Install
+
+{{< steps >}}
+1. Download `sev1situations-<version>-darwin-arm64.zip` (Apple silicon) or `-amd64.zip` (Intel) from the project's GitHub releases. The repository is access-controlled, so you need access to it.
+2. Check the download against `SHA256SUMS` from the same release:
+
+   ```sh
+   shasum -a 256 -c SHA256SUMS --ignore-missing
+   ```
+3. Unzip it and move `Sev1 Situations.app` to Applications.
+4. Clear the quarantine attribute, because the first releases are not signed or notarised and macOS Gatekeeper blocks them:
+
+   ```sh
+   xattr -cr "/Applications/Sev1 Situations.app"
+   ```
+{{< /steps >}}
+
+{{< callout note >}}
+`go install` is not supported, because the build needs the frontend and cgo.
+{{< /callout >}}
+
+To use the command line, run the program inside the bundle, or alias it:
+
+{{< cmd >}}
+alias s1s='"/Applications/Sev1 Situations.app/Contents/MacOS/s1s"'
+s1s prereq
+{{< /cmd >}}
+
 ## Run the Vault Sandbox
 
 {{< steps >}}

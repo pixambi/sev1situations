@@ -53,7 +53,7 @@ test("focus is always visible while tabbing through the scenarios page", async (
 
 test("the start form is operable by keyboard, and errors are announced", async ({ page }) => {
   await page.goto("/");
-  const start = page.getByRole("button", { name: "Start" });
+  const start = page.getByRole("listitem").filter({ hasText: "Vault Sandbox" }).getByRole("button", { name: "Start" });
   test.skip(await start.isDisabled(), "Podman is not ready here, so the form cannot be opened");
   await start.focus();
   await page.keyboard.press("Enter");
