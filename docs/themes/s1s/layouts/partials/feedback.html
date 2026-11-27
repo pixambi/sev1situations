@@ -1,0 +1,3 @@
+{{ if not .IsHome }}
+<p class="feedback"><a href="{{ .Site.Params.feedback }}&body={{ .Permalink | urlquery }}">Was this page wrong or unclear? Tell us.</a></p>
+{{ end }}

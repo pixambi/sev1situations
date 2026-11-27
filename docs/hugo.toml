@@ -1,0 +1,26 @@
+baseURL = "https://pixambi.github.io/sev1situations/"
+title = "Sev1 Situations"
+languageCode = "en"
+theme = "s1s"
+disableKinds = ["taxonomy", "RSS"]
+enableRobotsTXT = true
+
+[params]
+  description = "Run severity-1 incident calls against real HashiCorp Vault and Boundary, locally."
+  repo = "https://github.com/pixambi/sev1situations"
+  feedback = "https://github.com/pixambi/sev1situations/issues/new?title=Docs%20feedback"
+
+[outputs]
+  home = ["HTML", "JSON"]
+
+[outputFormats.JSON]
+  baseName = "search-index"
+
+[markup.goldmark.renderer]
+  unsafe = false
+
+[markup.highlight]
+  noClasses = false
+  style = "github"
+
+[menus]

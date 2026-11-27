@@ -1,0 +1,17 @@
+{{ $p := . }}
+<header class="top">
+  <a class="brand" href="{{ "/" | relURL }}">Sev1 Situations</a>
+  <nav aria-label="Main">
+    <ul>
+      {{ range (slice (dict "n" "Home" "u" "/") (dict "n" "Getting started" "u" "/getting-started/") (dict "n" "Docs" "u" "/docs/") (dict "n" "Scenarios" "u" "/scenarios/") (dict "n" "Contributing" "u" "/contributing/") (dict "n" "Updates" "u" "/updates/")) }}
+      <li><a href="{{ .u | relURL }}"{{ if eq (strings.TrimSuffix "/" ($p.RelPermalink | default "/")) (strings.TrimSuffix "/" (.u | relURL)) }} aria-current="page"{{ end }}>{{ .n }}</a></li>
+      {{ end }}
+    </ul>
+  </nav>
+  <div class="tools">
+    <label class="visually-hidden" for="search">Search the docs</label>
+    <input id="search" type="search" placeholder="Search" autocomplete="off" aria-controls="results">
+    <button id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
+  </div>
+  <ul id="results" class="results" hidden></ul>
+</header>

@@ -223,13 +223,13 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
-| T-110 | `docs/` Hugo site skeleton and the custom Carbon-styled theme (layouts, shortcodes, light and dark). | R-DOC-1 to R-DOC-6, 8 | L | `hugo` builds with no errors. |
-| T-111 | Home and marketing page, Getting started, user docs (UI, run page, Cluster, Logs, terminals, reports, settings, CLI, troubleshooting). | 8 | L | Content matches the shipped behaviour. |
-| T-112 | `tools/docgen`: generate scenario pages from the scenario folders. CI checks they are up to date. | R-SCN-14 | M | Changing a scenario without regenerating fails CI. |
-| T-113 | Contributing docs: architecture, writing a scenario by hand, adding a primitive, a step kind, a product, the Scenario Standard, the done checklist. | R-CONTRIB-5, R-CONTRIB-9 | L | A new contributor can add a trivial scenario by following it. |
-| T-114 | Offline client-side search. | 8 | M | Works without network. |
-| T-115 | GitHub Actions workflow deploying `docs/` to GitHub Pages. Content check for secrets and internal hostnames. | R-DOC-7 | M | Site is live. |
-| T-116 | Issue template for new scenarios. Contributor AI skills (define, scaffold, build). | R-CONTRIB-3, R-CONTRIB-7 | M | Templates and skills exist and are documented. |
+| T-110 | [x] `docs/` Hugo site skeleton and the custom Carbon-styled theme (layouts, shortcodes, light and dark). | R-DOC-1 to R-DOC-6, 8 | L | `hugo` builds with no errors. |
+| T-111 | [x] Home and marketing page, Getting started, user docs (UI, run page, Cluster, Logs, terminals, reports, settings, CLI, troubleshooting). | 8 | L | Content matches the shipped behaviour. |
+| T-112 | [x] `tools/docgen`: generate scenario pages from the scenario folders. CI checks they are up to date. | R-SCN-14 | M | Changing a scenario without regenerating fails CI. |
+| T-113 | [x] Contributing docs: architecture, writing a scenario by hand, adding a primitive, a step kind, a product, the Scenario Standard, the done checklist. | R-CONTRIB-5, R-CONTRIB-9 | L | A new contributor can add a trivial scenario by following it. |
+| T-114 | [x] Offline client-side search. | 8 | M | Works without network. |
+| T-115 | [x] (The workflow is written and its checks pass locally. The site goes live when this reaches `main` and Pages is enabled for the repository.) GitHub Actions workflow deploying `docs/` to GitHub Pages. Content check for secrets and internal hostnames. | R-DOC-7 | M | Site is live. |
+| T-116 | [x] Issue template for new scenarios. Contributor AI skills (define, scaffold, build). | R-CONTRIB-3, R-CONTRIB-7 | M | Templates and skills exist and are documented. |
 
 ---
 

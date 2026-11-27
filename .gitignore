@@ -7,3 +7,6 @@ frontend/node_modules
 trace.out
 frontend/playwright-report/
 frontend/test-results/
+docs/public/
+docs/resources/
+docs/.hugo_build.lock

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} | {{ .Site.Title }}{{ end }}</title>
+  <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
+  {{ $css := resources.Get "css/s1s.css" | resources.Minify | resources.Fingerprint }}
+  <link rel="stylesheet" href="{{ $css.RelPermalink }}">
+  <script>try{var t=localStorage.getItem("s1s-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  {{ partial "header.html" . }}
+  <div class="layout {{ block "layoutclass" . }}{{ end }}">
+    {{ block "sidebar" . }}{{ end }}
+    <main id="main" tabindex="-1">
+      {{ block "main" . }}{{ end }}
+      {{ partial "feedback.html" . }}
+    </main>
+  </div>
+  {{ partial "footer.html" . }}
+  {{ $js := resources.Get "js/s1s.js" | resources.Minify | resources.Fingerprint }}
+  <script src="{{ $js.RelPermalink }}" data-index="{{ "search-index.json" | relURL }}"></script>
+</body>
+</html>

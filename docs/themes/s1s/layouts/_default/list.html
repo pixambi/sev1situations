@@ -1,0 +1,14 @@
+{{ define "layoutclass" }}with-side{{ end }}
+{{ define "sidebar" }}{{ if .Section }}{{ partial "sidebar.html" . }}{{ end }}{{ end }}
+{{ define "main" }}
+<article class="doc">
+  <h1>{{ .Title }}</h1>
+  {{ with .Description }}<p class="lede">{{ . }}</p>{{ end }}
+  {{ .Content }}
+  <ul class="cards">
+    {{ range .Pages.ByWeight }}
+    <li><a href="{{ .RelPermalink }}"><strong>{{ .Title }}</strong>{{ with .Description }}<span>{{ . }}</span>{{ end }}</a></li>
+    {{ end }}
+  </ul>
+</article>
+{{ end }}

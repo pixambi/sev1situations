@@ -1,0 +1,13 @@
+{{ $cur := .current }}
+<ul>
+  {{ range .pages.ByWeight }}
+  <li>
+    {{ if .IsSection }}
+    <span class="group">{{ .Title }}</span>
+    {{ partial "sidemenu.html" (dict "pages" .Pages "current" $cur) }}
+    {{ else }}
+    <a href="{{ .RelPermalink }}"{{ if eq .RelPermalink $cur.RelPermalink }} aria-current="page"{{ end }}>{{ .Title }}</a>
+    {{ end }}
+  </li>
+  {{ end }}
+</ul>

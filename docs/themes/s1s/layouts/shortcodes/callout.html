@@ -1,0 +1,2 @@
+{{ $kind := .Get 0 | default "note" }}
+<aside class="callout {{ $kind }}" role="note"><strong>{{ $kind | title }}</strong>{{ .Inner | markdownify }}</aside>

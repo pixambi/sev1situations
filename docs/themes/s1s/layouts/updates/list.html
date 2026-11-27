@@ -1,0 +1,9 @@
+{{ define "main" }}
+<article class="doc narrow">
+  <h1>{{ .Title }}</h1>
+  {{ .Content }}
+  {{ range .Pages.ByDate.Reverse }}
+  <section class="release"><h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2><p class="meta">{{ .Date.Format "2 January 2006" }}</p>{{ .Summary }}</section>
+  {{ end }}
+</article>
+{{ end }}

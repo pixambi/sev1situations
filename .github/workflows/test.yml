@@ -29,6 +29,9 @@ jobs:
       - run: npm run check:offline
         working-directory: frontend
       - run: go vet ./...
+      # R-SCN-14: the scenario pages in the docs are generated, and must match the scenario folders.
+      - name: Scenario docs are current
+        run: go run ./tools/docgen -check
       - run: go test -tags server ./...
       # R-LANG-2: everything under internal/ except the Wails shell is pure Go.
       - name: Core builds without cgo

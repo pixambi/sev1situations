@@ -1,0 +1,6 @@
+{{ $section := .Section }}
+{{ $root := site.GetPage (printf "/%s" $section) }}
+<nav class="side" aria-label="{{ $root.Title }}">
+  <h2>{{ $root.Title }}</h2>
+  {{ partial "sidemenu.html" (dict "pages" $root.Pages "current" .) }}
+</nav>

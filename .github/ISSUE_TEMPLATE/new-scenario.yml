@@ -1,0 +1,100 @@
+name: New scenario
+description: Define a scenario before it is built.
+title: "Scenario: "
+labels: [scenario]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A scenario is done only when it has a well-defined issue (this one), the final scenario, a manual end-to-end test by a maintainer on real Podman, and its generated docs page.
+  - type: input
+    id: name
+    attributes:
+      label: Name and ID
+      description: The name shown in the catalogue, and the ID, which starts with the product, for example vault-broken-kms.
+    validations:
+      required: true
+  - type: dropdown
+    id: product
+    attributes:
+      label: Product
+      options: [Vault, Boundary]
+    validations:
+      required: true
+  - type: checkboxes
+    id: editions
+    attributes:
+      label: Editions
+      options:
+        - label: Community
+        - label: Enterprise
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      options: [Beginner, Intermediate, Advanced]
+    validations:
+      required: true
+  - type: input
+    id: minutes
+    attributes:
+      label: Estimated time in minutes
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences, in the customer's words.
+    validations:
+      required: true
+  - type: textarea
+    id: objectives
+    attributes:
+      label: Learning objectives
+      description: What the trainee should gain. One per line.
+    validations:
+      required: true
+  - type: textarea
+    id: initial
+    attributes:
+      label: Initial state
+      description: What the deployment provides before step one.
+    validations:
+      required: true
+  - type: textarea
+    id: failure
+    attributes:
+      label: Failure created
+      description: What is broken, and how. Say whether it is recoverable.
+    validations:
+      required: true
+  - type: textarea
+    id: symptoms
+    attributes:
+      label: Symptoms
+      description: What the trainee sees, including the exact error text.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: The breakage step and the verification step, and what each one checks.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution
+      description: The commands that fix it.
+    validations:
+      required: true
+  - type: textarea
+    id: pitfalls
+    attributes:
+      label: Pitfalls
+      description: Common mistakes and what they look like.
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to product documentation.

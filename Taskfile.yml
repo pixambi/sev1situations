@@ -60,13 +60,20 @@ tasks:
       - go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
 
   docs:
-    summary: Builds the Hugo documentation site
-    desc: The site arrives in milestone M9, so this fails until docs/ exists.
-    preconditions:
-      - sh: test -d docs
-        msg: "docs/ does not exist yet. The Hugo site is built in milestone M9."
+    summary: Generates the scenario pages and builds the Hugo documentation site
     cmds:
+      - task: docs:generate
       - hugo --source docs --minify
+
+  docs:generate:
+    summary: Writes the Scenarios section of the docs from the scenario folders
+    cmds:
+      - go run ./tools/docgen
+
+  docs:check:
+    summary: Fails if the generated scenario pages are out of date
+    cmds:
+      - go run ./tools/docgen -check
 
   test:
     summary: Runs the Go and frontend unit tests

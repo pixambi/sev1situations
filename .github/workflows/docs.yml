@@ -1,0 +1,48 @@
+name: Docs
+on:
+  push:
+    branches: [main]
+    paths: [docs/**, scenarios/**, tools/**, .github/workflows/docs.yml]
+  pull_request:
+    paths: [docs/**, scenarios/**, tools/**, .github/workflows/docs.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: '0.170.0'
+      # R-SCN-14: the scenario pages are generated, and must match the scenario folders.
+      - run: go run ./tools/docgen -check
+      - run: hugo --source docs --minify
+      # R-DOC-7: the site is public, so it must hold no secret and no internal hostname.
+      - run: tools/docs-content-check.sh docs/public
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/public
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

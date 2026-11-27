@@ -1,0 +1,9 @@
+{{ define "layoutclass" }}with-side{{ end }}
+{{ define "sidebar" }}{{ if .Section }}{{ partial "sidebar.html" . }}{{ end }}{{ end }}
+{{ define "main" }}
+<article class="doc">
+  <h1>{{ .Title }}</h1>
+  {{ with .Description }}<p class="lede">{{ . }}</p>{{ end }}
+  {{ .Content }}
+</article>
+{{ end }}

@@ -1,0 +1,16 @@
+{{ define "layoutclass" }}with-side{{ end }}
+{{ define "sidebar" }}{{ partial "sidebar.html" . }}{{ end }}
+{{ define "main" }}
+<article class="doc scenario">
+  <h1>{{ .Title }}</h1>
+  <p class="lede">{{ .Description }}</p>
+  <dl class="facts">
+    {{ with .Params.product }}<div><dt>Product</dt><dd>{{ . | title }}</dd></div>{{ end }}
+    {{ with .Params.editions }}<div><dt>Editions</dt><dd>{{ delimit . ", " }}</dd></div>{{ end }}
+    {{ with .Params.difficulty }}<div><dt>Difficulty</dt><dd>{{ . | title }}</dd></div>{{ end }}
+    {{ with .Params.minutes }}<div><dt>Time</dt><dd>about {{ . }} minutes</dd></div>{{ end }}
+    {{ with .Params.scenario_id }}<div><dt>ID</dt><dd><code>{{ . }}</code></dd></div>{{ end }}
+  </dl>
+  {{ .Content }}
+</article>
+{{ end }}
