@@ -2,7 +2,7 @@
 
 The plan for building the project described in [`sev1situations-project-definition.md`](sev1situations-project-definition.md). The definition is the source of truth. This file only sequences the work. Rule IDs (`R-...`) and section numbers refer to the definition.
 
-**Status:** M0 to M6 are done, and so are all the spikes. M7, the Vault scenarios, is in progress (T-090 and T-091 done). Done tasks are marked `[x]`.
+**Status:** M0 to M9 are done, and so are all the spikes. M8 is done except T-106 (Enterprise only). M10 is in progress: T-120, T-123 and T-124 are done. Done tasks are marked `[x]`.
 
 **How to use this file**
 - Work top to bottom. Milestones are ordered by dependency (R-AGENT-6). Tasks inside a milestone can usually be done in the order listed.
@@ -240,7 +240,7 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 | T-120 | [x] (It lives in `frontend/e2e/`, and runs against the real Go services in a server build, with its own data folder.) Playwright setup in `tests/e2e/` (page objects, dev server on a free port, temp data dir, fake runtime, console-error failures) and Vitest setup for the frontend. | R-TEST-1 to R-TEST-5 | L | One command runs both suites. |
 | T-121 | Playwright coverage for every UI feature's main path. | R-TEST-4 | L | Suite green in CI. |
 | T-122 | Manual end-to-end test of every scenario on real Podman by a maintainer, recorded in the issue for each. Manual smoke test of the packaged `.app`. | R-CONTRIB-4, 9 | L | All eleven scenarios signed off. |
-| T-123 | Security pass: CSP, no remote content, no network listener, service input validation, no secrets in logs, reports or docs, `govulncheck` clean. | R-QUAL-3, R-QUAL-5, R-APP-3 | M | Checklist done. |
+| T-123 | [x] (Checked: `govulncheck` reports nothing, the production pages carry a strict CSP and `check:offline` finds nothing loaded from the network, the only listener in a production build is the loopback port probe, services validate their input, and no log call names a token, password or license.) Security pass: CSP, no remote content, no network listener, service input validation, no secrets in logs, reports or docs, `govulncheck` clean. | R-QUAL-3, R-QUAL-5, R-APP-3 | M | Checklist done. |
 | T-124 | [x] Release workflow on macOS runners: build the bundles, zip, checksums, publish on tags. | 10 | M | A tagged snapshot produces archives. |
 | T-125 | Verify the install path from the release archive on a clean Mac, including the Gatekeeper note in the docs. | 10 | S | Works on a clean machine. |
 | T-126 | Cut **0.1.0**. | 10 | S | Release published. |
