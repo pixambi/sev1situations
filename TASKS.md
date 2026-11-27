@@ -209,8 +209,8 @@ One scenario per task, in this order (simple to complex). Each needs: the folder
 
 | ID | Task | Refs | Size | Acceptance |
 |---|---|---|---|---|
-| T-100 | `product/boundary`: versions and editions, license, base image from S2, `database init`, controllers, load balancer, worker, target host, readiness. | 5.3.8 | L | Integration test brings up the sandbox topology. |
-| T-101 | Supporting services: Postgres and HAProxy as third-party images. | R-RUN-5 | M | Tests. |
+| T-100 | [x] `product/boundary`: versions and editions, license, base image from S2, `database init`, controllers, load balancer, worker, target host, readiness. | 5.3.8 | L | Integration test brings up the sandbox topology. |
+| T-101 | [x] (Built inside the Boundary product, which runs the database and the load balancer from their own images, and not as topology services.) Supporting services: Postgres and HAProxy as third-party images. | R-RUN-5 | M | Tests. |
 | T-102 | Boundary `Describe` and `LogStreams` (5.5), primitives (`cli`, `authorize-session`, `session-info`, `target-info`, `recordings-list`). | 4.5, 5.5 | L | Tests. |
 | T-103 | `scenarios/boundary/sandbox/` | 5.3.8 | M | Runs end to end. |
 | T-104 | Authorize-Session 403 | 5.3.9 | M | Done per R-CONTRIB-4. |
