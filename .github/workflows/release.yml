@@ -12,7 +12,7 @@ jobs:
       matrix:
         # The shell needs cgo, so each architecture builds on its own runner and nothing is cross-compiled (R-LANG-2).
         include:
-          - runner: macos-14
+          - runner: macos-latest
             arch: arm64
           - runner: macos-15-intel
             arch: amd64
