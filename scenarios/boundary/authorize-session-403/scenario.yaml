@@ -117,6 +117,7 @@ steps:
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: boundary.authorize-session
             args: { node: node-1, as: jsmith, password: "{{ .Creds.boundary.adminPassword }}", expect: allowed }

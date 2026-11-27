@@ -130,24 +130,28 @@ steps:
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.status
             args: { node: node-1, sealed: false }
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.status
             args: { node: node-2, sealed: false }
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.status
             args: { node: node-3, sealed: false }
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.raft-peers
             args: { node: node-1, servers: 3, voters: 3 }
@@ -169,6 +173,7 @@ steps:
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.status
             args: { node: node-3, sealed: false }

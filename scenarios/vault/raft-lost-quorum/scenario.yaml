@@ -87,6 +87,7 @@ steps:
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.status
             args:
@@ -113,6 +114,7 @@ steps:
       - primitive: wait.until
         args:
           interval: 3s
+          timeout: 30s
           check:
             primitive: vault.raft-peers
             args:
