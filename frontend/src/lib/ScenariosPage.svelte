@@ -75,6 +75,7 @@
           <Tile>
             <h4>{s.Name}</h4>
             <p>{s.Summary}</p>
+            <div class="foot">
             <div class="tags">
               <Tag type="blue">{productLabel(s.Difficulty)}</Tag>
               {#each s.Editions as edition (edition)}
@@ -91,6 +92,7 @@
               </p>
             {/if}
             <Button size="small" disabled={blocked !== ""} title={blocked} on:click={() => onstart(s.ID)}>Start</Button>
+            </div>
           </Tile>
         </li>
       {/each}
@@ -112,6 +114,18 @@
     list-style: none;
     padding: 0;
     margin: 0 0 2rem;
+  }
+  /* Every card in a row is as tall as the tallest, with its tags and Start button at the bottom, so a row lines up. */
+  .cards li {
+    display: flex;
+  }
+  .cards li :global(.bx--tile) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  .foot {
+    margin-top: auto;
   }
   .tags {
     margin: 0.75rem 0;
